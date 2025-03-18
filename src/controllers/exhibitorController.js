@@ -60,6 +60,10 @@ export const loginExhibitor = async (req, res) => {
             sameSite: "strict",
             expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) 
         });
+
+        console.log(exhibitor);
+        
+
         res.json({data: exhibitor, message: "Exhibitor login successful"})
 
 

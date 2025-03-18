@@ -47,9 +47,16 @@ export const bookSeats = async (req, res) => {
 // Get User's Bookings
 export const getUserBookings = async (req, res) => {
     try {
-        const bookings = await Booking.find({ user: req.user._id })
-            .populate("show theater movie seats");
-        res.json({ data: bookings });
+
+        const userId = req.user._id
+
+        const bookedSeats = await Seat.find({ isBooked: true, bookedBy: userId })
+        .populate("movie", "title genre duration")  
+        .populate("show", "startTime date")      
+        .populate("theater", "name location")     
+        .populate("bookedBy", userId); 
+
+        res.json({ data: bookedSeats });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

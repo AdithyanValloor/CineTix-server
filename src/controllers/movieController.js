@@ -1,9 +1,27 @@
 import { Movie } from "../models/moviesModel.js";
 
+// Get all movies
+export const getAllMovies = async (req, res) => {
+    try {
+
+        // Get all movie query 
+        const movies = await Movie.find()
+
+        // Check if movies exist
+        if(!movies.length) return res.status(404).json({ message: "No movies available" });
+        
+        res.json({ data: movies, message: "Movies fetched successfully" });
+
+    } catch (error) {
+        res.status(500).json({ message: error.message || "Internal server error" });
+        
+    }
+}
+
 // List all movies in a theater
 export const listMoviesByTheater = async (req, res) => {
     try {
-        const movies = await Movie.find({ theater: req.params.theaterId });
+        const movies = await Movie.find({ theaters: req.params.theaterId });
 
         if (!movies.length) return res.json({ message: "No movies available" });
 
@@ -17,9 +35,9 @@ export const listMoviesByTheater = async (req, res) => {
 // Add a new movie to a theater
 export const addMovie = async (req, res) => {
     try {
-        const { title, description, duration, language, genre, theater } = req.body;
+        const { title, description, duration, language, genre, year, director, cast} = req.body;
 
-        if (!title || !description || !duration || !language || !genre || !theater) {
+        if (!title || !description || !duration || !language || !genre) {
             return res.status(400).json({ message: "All fields are required" });
         }
 
@@ -29,7 +47,10 @@ export const addMovie = async (req, res) => {
             duration,
             language,
             genre,
-            theater
+            year,
+            director,
+            cast,
+            exhibitor: req.user._id
         });
 
         await newMovie.save();

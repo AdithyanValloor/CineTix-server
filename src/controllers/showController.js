@@ -1,6 +1,7 @@
 import { Show } from "../models/showsModel.js";
 import { Theater } from "../models/theatersModel.js";
 import { Seat } from "../models/seatsModel.js";
+import { Movie } from "../models/moviesModel.js";
 
 // Create Show
 export const createShow = async (req, res) => {
@@ -11,8 +12,24 @@ export const createShow = async (req, res) => {
             return res.status(400).json({ message: "All fields are required" });
         }
 
+        const movieData = await Movie.findById(movie);
+        if (!movieData) return res.status(404).json({ message: "Movie not found" });
+
+
         const theaterData = await Theater.findById(theater);
         if (!theaterData) return res.status(404).json({ message: "Theater not found" });
+
+        const show = await Show.create({ 
+            movie, 
+            theater, 
+            date, 
+            time, 
+            ticketPrice, 
+            exhibitor: req.user._id
+        });
+
+        console.log("Show Created:", show);
+        console.log("Show ID:", show._id);
 
         // Generate seats
         let seats = [];
@@ -23,21 +40,20 @@ export const createShow = async (req, res) => {
                     column: col,
                     theater,
                     movie,
+                    show: show._id,
+                    isBooked: false 
                 });
                 seats.push(seat._id)
             }
         }
 
-        const show = await Show.create({ 
-            movie, 
-            theater, 
-            date, 
-            time, 
-            ticketPrice, 
-            seats, 
-            exhibitor: req.user._id
-        });
+        show.seats = seats
+        await show.save()
 
+        await Movie.findByIdAndUpdate(movie, { 
+            $addToSet: { theaters: theater } 
+        });
+        
         res.status(201).json({ data: show, message: "Show created successfully" })
 
     } catch (error) {
@@ -86,8 +102,18 @@ export const deleteShow = async (req, res) => {
         const show = await Show.findById(req.params.id)
         if (!show) return res.status(404).json({ message: "Show not found" })
 
+        const { movie, theater } = show;    
+
         await Show.deleteOne({ _id: req.params.id });
         await Seat.deleteMany({ _id: { $in: show.seats } })
+
+        const remainingShows = await Show.findOne({ movie, theater });
+
+        if (!remainingShows) {
+            await Movie.findByIdAndUpdate(movie, {
+                $pull: { theaters: theater }
+            });
+        }
 
         res.json({ message: "Show deleted successfully" })
     } catch (error) {

@@ -21,7 +21,13 @@ const theaterSchema = new Schema({
         type: mongoose.Schema.Types.ObjectId, 
         ref: "User", 
         required: true 
-    }, 
+    },
+    reviews: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Review", 
+        },
+    ], 
 }, { timestamps: true });
 
 export const Theater = model("Theater", theaterSchema);

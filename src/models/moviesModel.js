@@ -8,25 +8,44 @@ const movieSchema = new Schema({
     description: { 
         type: String 
     },
+    director: { 
+        type: String 
+    },
     duration: { 
         type: Number, 
         required: true 
     }, // Duration in minutes
-    genre: { 
+    genre: [{ 
         type: String, 
         required: true 
-    },
-    releaseDate: { 
+    }],
+    language: { 
+        type: String, 
+        required: true 
+    }, 
+    year: { 
         type: Date 
     },
-    theater: { 
+    rating: { 
+        type: Number, 
+        min: 1, 
+        max: 5, 
+    },
+    cast: [
+        {
+            name: { type: String, required: true },
+            role: { type: String, required: true }, 
+        }
+    ],
+    exhibitors: [{ 
         type: mongoose.Schema.Types.ObjectId, 
-        ref: "Theater", required: true 
-    }, // Linked to theater
-    exhibitor: { 
-        type: mongoose.Schema.Types.ObjectId, 
-        ref: "User", required: true 
-    }, // Owned by an exhibitor
+        ref: "User", 
+        required: true 
+    }],
+    theaters: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Theater"
+    }]
 }, { timestamps: true });
 
 export const Movie = model("Movie", movieSchema);

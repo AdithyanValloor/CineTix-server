@@ -8,7 +8,7 @@ const router = express.Router();
 router.post("/", protect, bookSeats);
 
 // Get user's bookings
-router.get("/", protect, getUserBookings);
+router.get("/all-bookings", protect, getUserBookings);
 
 // Cancel booking
 router.delete("/:id", protect, cancelBooking);

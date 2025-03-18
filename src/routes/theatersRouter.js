@@ -1,18 +1,19 @@
 import express from "express";
 import { addTheater, deleteTheater, editTheater, listTheaters } from "../controllers/theaterController.js";
+import { authorizeExhibitor, authorizeExhibitorOrAdmin, protect } from "../middlewares/auth.js";
 
 const router = express.Router()
 
 // Add theater
-router.post("/add-theater", addTheater)
+router.post("/add-theater", protect, authorizeExhibitor, addTheater)
 
 // Edit theater
-router.patch("/edit-theater/:id", editTheater)
+router.patch("/edit-theater/:id", protect, authorizeExhibitor, editTheater)
 
 // Delete theater
-router.delete("/delete-theater/:id", deleteTheater)
+router.delete("/delete-theater/:id", protect, authorizeExhibitor, deleteTheater)
 
 // List theaters
-router.get("/list-theaters", listTheaters)
+router.get("/list-theaters", protect, authorizeExhibitorOrAdmin, listTheaters)
 
 export {router as theaterRouter}

@@ -7,7 +7,7 @@ const router = express.Router();
 // Exhibitor creates a show
 router.post("/create-show", protect, authorizeExhibitor, createShow);
 
-// Get all shows (filter by theater/movie if needed)
+// Get all shows of a theater 
 router.get("/get-shows", getShows);
 
 // Update a show

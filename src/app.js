@@ -8,11 +8,15 @@ import { bookingRouter } from "./routes/bookingsRouter.js";
 import { showsRouter } from "./routes/showsRouter.js";
 import { exhibitorRouter } from "./routes/exhibitorRouter.js";
 import cookieParser from 'cookie-parser'
+import { reviewRouter } from "./routes/reviewsRouter.js";
+import { watchlistRouter } from "./routes/watchlistRouter.js";
+import cors from 'cors'
 
 const app = express()
 
 app.use(express.json())
 app.use(cookieParser());
+app.use(cors())
 
 // User route
 app.use("/api/user", userRouter)
@@ -37,5 +41,11 @@ app.use("/api/shows", showsRouter)
 
 // Bookings route
 app.use("/api/booking", bookingRouter)
+
+// Review route
+app.use("/api/reviews", reviewRouter)
+
+// Watchlist
+app.use("/api/watchlist", watchlistRouter)
 
 export default app

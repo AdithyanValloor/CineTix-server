@@ -8,7 +8,7 @@ export const signup = async (req, res) => {
         const {name, email, password, phone} = req.body
 
         //data validation
-        if (!name || !email || !password || !phone) return res.status(400).json({ message: "all fields required" });
+        if (!name || !email || !password ) return res.status(400).json({ message: "all fields required" });
        
         // Check if already exists
         const userExist = await User.findOne({email})
@@ -20,14 +20,22 @@ export const signup = async (req, res) => {
 
         // Generate Token 
         const token = generateToken(newUser._id, "user")
-        console.log(token);
+    
         res.cookie("token", token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
             sameSite: "strict",
             expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) 
         });
-        res.json({data: newUser, message: "signup success"})
+
+        {
+            const {password, ...userData} = newUser.toObject()
+            res.json({data: userData, message: "signup success"})
+
+            console.log("User Data :", userData);
+            
+        }
+
 
     } catch (error) {
         res.status(error.statusCode || 500).json({ message: error.message || "Internal server error" });
@@ -68,7 +76,14 @@ export const login = async (req, res) => {
             expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) 
         });
 
-        res.json({data: user, message: "login successfull"})
+        {
+            const {password, ...userData} = user.toObject()
+            res.json({data: userData, message: "login success"})
+
+            console.log("User Data :", userData);
+        }
+
+        // res.json({data: user, message: "login successfull"})
 
     } catch (error) {
         res.status(error.statusCode || 500).json({ message: error.message || "Internal server error" });
@@ -194,6 +209,8 @@ export const reactivateAccount = async (req, res) => {
     
             return res.json({ message: "Your account has been reactivated!", data: user });
         }
+
+        return res.json({ message: "Your account is already activate", data: user });
 
     } catch (error) {
         res.status(error.statusCode || 500).json({message: error.message || "Internal server error"})

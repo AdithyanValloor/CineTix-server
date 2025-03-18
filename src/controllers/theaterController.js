@@ -3,15 +3,16 @@ import { Theater } from "../models/theatersModel.js";
 // Create a theater
 export const addTheater = async (req, res) => {
     try {
-        const { name, location, totalSeats } = req.body;
+        const { name, location, rows, columns } = req.body;
 
-        if (!name || !location || !totalSeats) 
+        if (!name || !location || !rows || !columns) 
             return res.status(400).json({ message: "All fields are required" });
 
         const theater = new Theater({
             name,
             location,
-            totalSeats,
+            rows,
+            columns,
             exhibitor: req.user.id,
         });
 
@@ -78,6 +79,8 @@ export const listTheaters = async (req, res) => {
             // For EXHIBITOR req
             theaters = await Theater.find({ exhibitor: req.user.id });
         }
+        
+        res.status(200).json({ data: theaters, message: "Theaters fetched successfully" });
 
     } catch (error) {
         res.status(500).json({ message: error.message || "Internal server error" });
