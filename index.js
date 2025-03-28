@@ -7,6 +7,7 @@ dotenv.config();
 connectDb()
 deleteExpiredAccounts()
 
+console.log("Mongo URI:", process.env.MONGO_URI);
 const PORT = process.env.PORT || 3000 
 
 app.get('/', (req, res) => {
