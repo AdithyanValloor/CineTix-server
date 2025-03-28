@@ -17,7 +17,7 @@ const app = express()
 app.use(express.json())
 app.use(cookieParser());
 app.use(cors({
-    origin: "https://cine-tix-client.vercel.app/",
+    origin: "https://cine-tix-client.vercel.app",
     credentials: true, 
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTION"]
 }))
