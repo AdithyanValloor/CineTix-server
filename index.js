@@ -1,7 +1,9 @@
 import app from './src/app.js'
 import deleteExpiredAccounts from './src/jobs/deleteExpiredAccounts.js'
 import { connectDb } from './src/config/db.js'
+import dotenv from 'dotenv';
 
+dotenv.config();
 connectDb()
 deleteExpiredAccounts()
 
