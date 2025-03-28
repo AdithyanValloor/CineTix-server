@@ -14,38 +14,50 @@ const movieSchema = new Schema({
     duration: { 
         type: Number, 
         required: true 
-    }, // Duration in minutes
+    }, 
     genre: [{ 
         type: String, 
-        required: true 
+        required: true,
+        index: false
     }],
     language: { 
         type: String, 
         required: true 
     }, 
     year: { 
-        type: Date 
+        type: Number 
     },
     rating: { 
         type: Number, 
         min: 1, 
-        max: 5, 
+        max: 10, 
     },
-    cast: [
+    certification: {
+        type: String,
+        enum: ["U", "U/A","U-12", "U-16", "A", "PG", "PG-13", "R", "NC-17"],
+        default: "U" // Ensure there's always a value if none is provided
+    },    
+    castAndCrew: [
         {
             name: { type: String, required: true },
-            role: { type: String, required: true }, 
+            role: { type: String, required: true }, // e.g., Actor, Director, Producer, Writer, etc.
+            character: { type: String } // For actors, if applicable
         }
     ],
     exhibitors: [{ 
         type: mongoose.Schema.Types.ObjectId, 
-        ref: "User", 
-        required: true 
+        ref: "Exhibitor", 
     }],
     theaters: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: "Theater"
-    }]
+    }],
+    posters: [{ 
+        type: String 
+    }],
+    banners: [{ 
+        type: String 
+    }],
 }, { timestamps: true });
 
 export const Movie = model("Movie", movieSchema);

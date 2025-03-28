@@ -115,37 +115,42 @@ export const getProfile = async (req, res) => {
 // UPDATE PROFILE
 export const updateProfile = async (req, res) => {
     try {
-
-        // Get user data that needed to be updated
-        const {name, email, oldPassword, newPassword, phone} = req.body
+        const { name, email, oldPassword, newPassword, phone } = req.body;
 
         // Ensure user is authenticated
-        if(!req.user || !req.user.id) return res.status(401).json({message: "Unauthorized access"})
+        if (!req.user || !req.user.id) return res.status(401).json({ message: "Unauthorized access" });
 
-        // Retrieve user data from database 
-        const userData = await User.findById(req.user.id)
-        if(!userData) return res.status(401).json({message: "User not found"})
+        // Retrieve user from database
+        const userData = await User.findById(req.user.id);
+        if (!userData) return res.status(404).json({ message: "User not found" });
 
-        // Update user data 
-        if(name) userData.name = name
-        if(email) userData.email = email
-        if(phone) userData.phone = phone
-        
-        if(oldPassword && newPassword){
-            const isMatch = await userData.comparePassword(oldPassword)
-            if(!isMatch) return res.status(400).json({message: "Incorrect password"})
-            userData.password = newPassword
+        // Update details
+        if (name) userData.name = name;
+        if (email) userData.email = email;
+        if (phone) userData.phone = phone;
+
+        // Handle profile picture upload (Cloudinary URL)
+        if (req.file) {
+            userData.profilePicture = req.file.path; // Cloudinary provides a URL in req.file.path
         }
 
-        // Save updates
-        await userData.save()
+        // Update password (if provided)
+        if (oldPassword && newPassword) {
+            const isMatch = await userData.comparePassword(oldPassword);
+            if (!isMatch) return res.status(400).json({ message: "Incorrect password" });
+            userData.password = newPassword;
+        }
 
-        res.json({ data: userData, message: "User profile updated successfully"})
+        // Save changes
+        await userData.save();
+
+        res.json({ data: userData, message: "User profile updated successfully" });
 
     } catch (error) {
-        res.status(error.statusCode || 500).json({message: error.message || "Internal server error"})
+        res.status(error.statusCode || 500).json({ message: error.message || "Internal server error" });
     }
-}
+};
+
 
 // DEACTIVATE ACCOUNT
 export const deactivateProfile = async (req, res) => {
