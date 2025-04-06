@@ -8,6 +8,9 @@ dotenv.config();
 const router = express.Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
+console.log("STRIPE : ", stripe);
+
+
 router.post(
   "/",
   express.raw({ type: "application/json" }),
