@@ -8,6 +8,11 @@ const reviewSchema = new Schema({
             return this.reviewType === "movie";
         },
     },
+    reviewType: {
+        type: String,
+        enum: ["movie", "theater"],
+        required: true
+    },      
     theater:{
         type: mongoose.Types.ObjectId,
         ref: "Theater",

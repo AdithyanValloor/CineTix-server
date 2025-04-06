@@ -2,7 +2,6 @@ import express from "express";
 import { userRouter } from "./routes/userRouter.js";
 import { adminRouter } from "./routes/adminRouter.js";
 import { theaterRouter } from "./routes/theatersRouter.js";
-import { seatsRouter } from "./routes/seatsRouter.js";
 import { moviesRouter } from "./routes/moviesRouter.js";
 import { bookingRouter } from "./routes/bookingsRouter.js";
 import { showsRouter } from "./routes/showsRouter.js";
@@ -11,16 +10,30 @@ import cookieParser from 'cookie-parser'
 import { reviewRouter } from "./routes/reviewsRouter.js";
 import { watchlistRouter } from "./routes/watchlistRouter.js";
 import cors from 'cors'
+import bodyParser from "body-parser";
+import stripeWebhookRoute from "./routes/stripeWebhook.js";
+import { paymentRouter } from "./routes/paymentsRouter.js";
 
 const app = express()
 
-app.use(express.json())
-app.use(cookieParser());
 app.use(cors({
-    origin: "https://cine-tix-client.vercel.app",
+    origin: [
+        "https://cine-tix-client.vercel.app",
+        "http://192.168.20.5:5173",
+        "http://192.168.20.8:5173",
+        "http://localhost:5173"
+    ],
     credentials: true, 
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTION"]
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
 }))
+app.options("*", cors());
+
+app.use("/api/webhook", stripeWebhookRoute);
+
+app.use(cookieParser())
+app.use(express.json())
+
+app.use("/api/payments", paymentRouter)
 
 // User route
 app.use("/api/user", userRouter)
@@ -37,9 +50,6 @@ app.use("/api/theater", theaterRouter)
 // Movies route
 app.use("/api/movies", moviesRouter)
 
-// Seats route
-app.use("/api/seats", seatsRouter)
-
 // Shows route
 app.use("/api/shows", showsRouter)
 
@@ -48,6 +58,9 @@ app.use("/api/booking", bookingRouter)
 
 // Review route
 app.use("/api/reviews", reviewRouter)
+
+// Payments route
+app.use("/api/payments", paymentRouter)
 
 // Watchlist
 app.use("/api/watchlist", watchlistRouter)

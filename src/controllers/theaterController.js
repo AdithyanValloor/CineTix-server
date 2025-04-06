@@ -1,28 +1,36 @@
 import { Theater } from "../models/theatersModel.js";
 
-// Create a theater
 export const addTheater = async (req, res) => {
     try {
-        const { name, location, rows, columns } = req.body;
+        const { name, location, rows, columns, sections } = req.body;
 
-        if (!name || !location || !rows || !columns) 
-            return res.status(400).json({ message: "All fields are required" });
+        if (!name || !location || !rows || !columns || !sections || !Array.isArray(sections)) {
+            return res.status(400).json({ message: "All fields including sections are required" });
+        }
+
+        const allSectionRows = sections.flatMap(sec => sec.rows);
+        const uniqueRows = new Set(allSectionRows);
+        if (uniqueRows.size !== allSectionRows.length) {
+            return res.status(400).json({ message: "Duplicate rows found across sections" });
+        }
 
         const theater = new Theater({
             name,
             location,
             rows,
             columns,
-            exhibitor: req.user.id,
+            sections,
+            exhibitor: req.user.id
         });
 
         await theater.save();
-        res.status(201).json({ data: theater, message: "Theater added successfully" });
+        res.status(201).json({ data: theater, message: "Theater added successfully with sections" });
 
     } catch (error) {
         res.status(500).json({ message: error.message || "Internal server error" });
     }
 };
+
 
 // Edit theater
 export const editTheater = async (req, res) => {
@@ -35,11 +43,28 @@ export const editTheater = async (req, res) => {
         if (theater.exhibitor.toString() !== req.user.id)
             return res.status(403).json({ message: "Unauthorized" });
 
-        const { name, location, totalSeats } = req.body;
+        const { name, location, rows, columns, sections } = req.body;
 
         if (name) theater.name = name;
         if (location) theater.location = location;
-        if (totalSeats) theater.totalSeats = totalSeats;
+        if (rows) theater.rows = rows;
+        if (columns) theater.columns = columns;
+
+        // Update sections with validation
+        if (sections) {
+            if (!Array.isArray(sections)) {
+                return res.status(400).json({ message: "Sections must be an array" });
+            }
+
+            const allSectionRows = sections.flatMap(sec => sec.rows);
+            const uniqueRows = new Set(allSectionRows);
+
+            if (uniqueRows.size !== allSectionRows.length) {
+                return res.status(400).json({ message: "Duplicate rows found across sections" });
+            }
+
+            theater.sections = sections;
+        }
 
         await theater.save();
         res.json({ data: theater, message: "Theater updated successfully" });

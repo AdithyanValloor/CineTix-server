@@ -17,6 +17,18 @@ const theaterSchema = new Schema({
         type: Number, 
         required: true 
     }, 
+    sections: [
+        {
+          sectionName: { type: String, required: true },
+          seatType: {
+            type: String,
+            enum: ["Economy", "Regular", "Premium", "Executive", "Recliner", "VIP", "Couple", "Box", "Wheelchair"],
+            required: true
+          },
+          price: { type: Number, required: true },
+          rows: [{ type: String, required: true }] 
+        }
+    ],
     exhibitor: { 
         type: mongoose.Schema.Types.ObjectId, 
         ref: "User", 

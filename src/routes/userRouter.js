@@ -1,5 +1,6 @@
 import express from "express";
 import { protect } from "../middlewares/auth.js";
+import upload from "../middlewares/multer.js";
 import {
   signup,
   login,
@@ -20,7 +21,7 @@ router.get("/", (req, res) => res.status(200).send("userRouter is working"));
 router.post("/signup", signup);
 router.post("/login", login);
 router.get("/profile", protect, getProfile);
-router.put("/profile-update", protect, updateProfile);
+router.put("/profile-update", protect, upload.single("profilePicture"), updateProfile);
 router.put("/deactivate-account", protect, deactivateProfile);
 router.put("/reactivate-account", reactivateAccount)
 router.delete("/delete-account", protect, deleteAccount);

@@ -3,13 +3,19 @@ import bcrypt from "bcryptjs";
 
 const UserSchema = new mongoose.Schema(
   {
-    name: {
+    firstName: {
       type: String,
       required: true,
       trim: true,
     },
-    profilePicture: { 
-      type: String 
+    lastName: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    profilePicture: {
+      url: { type: String },
+      public_id: { type: String },
     },
     email: {
       type: String,
@@ -22,13 +28,36 @@ const UserSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    phone: {
-      type: String,
-    },
     company: {
       type: String
-    }
-    ,
+    },
+    dateOfBirth: {
+      type: Date,
+    },
+    mobile: {
+      type: String,
+    },
+    identity: {
+      type: String,
+    },
+    pincode: {
+      type: String,
+    },
+    address1: {
+      type: String,
+    },
+    address2: {
+      type: String,
+    },
+    landmark: {
+      type: String,
+    },
+    city: {
+      type: String,
+    },
+    state: {
+      type: String,
+    },
     role: {
       type: String,
       enum: ["user", "exhibitor", "admin"],
@@ -77,4 +106,4 @@ UserSchema.methods.comparePassword = async function (enteredPassword) {
 
 const User = mongoose.model("User", UserSchema);
 
-export {User};
+export { User };

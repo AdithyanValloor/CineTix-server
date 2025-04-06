@@ -6,16 +6,16 @@ export const registerExhibitor = async (req, res) => {
     try {
 
         // Get exhibitor data
-        const {name, email, password, phone, company} = req.body
+        const {firstName, lastName, email, password, mobile, company} = req.body
         
-        if(!name || !email || !password || !phone || !company) return res.status(400).json({message: "All fields are required"})
+        if(!firstName|| !lastName || !email || !password || !mobile || !company) return res.status(400).json({message: "All fields are required"})
 
         // Check if exhibitor already registered
         const exists = await User.findOne({ email })
         if(exists) return res.status(400).json({message: "Exhibitor already exists"})
 
         // Create exhibitor
-        const exhibitor = new User({name, email, password, phone, company, role: "exhibitor"})
+        const exhibitor = new User({firstName, lastName, email, password, mobile, company, role: "exhibitor"})
 
         await exhibitor.save()
 
@@ -93,7 +93,7 @@ export const updateExhibitorProfile = async (req, res) => {
     try {
 
         // Get datas
-        const {name, email, oldPassword, newPassword, phone, company} = req.body
+        const {firstName, lastName, email, oldPassword, newPassword, mobile, company} = req.body
 
         // Verify user is authenticated
         if(!req.user || !req.user.id) return res.status(401).json({message: "Unauthorized access"})
@@ -104,9 +104,10 @@ export const updateExhibitorProfile = async (req, res) => {
         if(!exhibitor) return res.status(401).json({message: "User not found"})
 
         // Update data
-        if(name) exhibitor.name = name
+        if(firstName) exhibitor.firstName = firstName
+        if(lastName) exhibitor.lastName = lastName
         if(email) exhibitor.email = email
-        if(phone) exhibitor.phone = phone
+        if(mobile) exhibitor.mobile = mobile
         if(company) exhibitor.company = company
         
         if(oldPassword && newPassword){

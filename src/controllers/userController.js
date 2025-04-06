@@ -1,21 +1,22 @@
 import { User } from "../models/userModel.js"
 import { generateToken } from "../utils/token.js"
+import cloudinary from "../config/cloudinary.js"
 
 // SIGNUP
 export const signup = async (req, res) => {
     try {
         // Retreiving data from client
-        const {name, email, password, phone} = req.body
+        const {firstName, lastName, email, password, phone} = req.body
 
         //data validation
-        if (!name || !email || !password ) return res.status(400).json({ message: "all fields required" });
+        if (!firstName || !lastName || !email || !password ) return res.status(400).json({ message: "all fields required" });
        
         // Check if already exists
         const userExist = await User.findOne({email})
         if(userExist) return res.status(400).json({message: "User already exist"})
 
         // Save to database
-        const newUser = new User({name, email, password, phone})
+        const newUser = new User({firstName, lastName, email, password, phone})
         await newUser.save()
 
         // Generate Token 
@@ -115,23 +116,47 @@ export const getProfile = async (req, res) => {
 // UPDATE PROFILE
 export const updateProfile = async (req, res) => {
     try {
-        const { name, email, oldPassword, newPassword, phone } = req.body;
+        console.log("Update profile hit");
 
+        // const { name, email, oldPassword, newPassword, phone } = req.body;
+        const { firstName, lastName, name, dateOfBirth, email, oldPassword, newPassword, phone, mobile, identity, pincode, address1, address2, landmark, city, state } = req.body
+
+        console.log("Recieved data :" , req.body )
+        
         // Ensure user is authenticated
-        if (!req.user || !req.user.id) return res.status(401).json({ message: "Unauthorized access" });
+        if (!req.user || !req.user.id) return res.status(401).json({ message: "Unauthorized access" })
 
         // Retrieve user from database
-        const userData = await User.findById(req.user.id);
-        if (!userData) return res.status(404).json({ message: "User not found" });
+        const userData = await User.findById(req.user.id)
+        if (!userData) return res.status(404).json({ message: "User not found" })
+
+        if (req.file && userData.profilePicture?.public_id) {
+            await cloudinary.uploader.destroy(userData.profilePicture.public_id);
+        }
 
         // Update details
-        if (name) userData.name = name;
-        if (email) userData.email = email;
-        if (phone) userData.phone = phone;
+        if (firstName) userData.firstName = firstName
+        if (lastName) userData.lastName = lastName
+        if (name) userData.name = name
+        if (dateOfBirth) userData.dateOfBirth = dateOfBirth
+        if (email) userData.email = email
+        if (phone) userData.phone = phone
+        if (mobile) userData.mobile = mobile
+        if (identity) userData.identity = identity 
+ 
+        if (pincode) userData.pincode = pincode
+        if (address1) userData.address1 = address1
+        if (address2) userData.address2 = address2
+        if (landmark) userData.landmark = landmark
+        if (city) userData.city = city
+        if (state) userData.state = state
 
         // Handle profile picture upload (Cloudinary URL)
         if (req.file) {
-            userData.profilePicture = req.file.path; // Cloudinary provides a URL in req.file.path
+            userData.profilePicture = {
+            url: req.file.path,
+            public_id: req.file.filename, // stored automatically by multer-storage-cloudinary
+        };
         }
 
         // Update password (if provided)
@@ -147,7 +172,12 @@ export const updateProfile = async (req, res) => {
         res.json({ data: userData, message: "User profile updated successfully" });
 
     } catch (error) {
+
+        console.error("Profile update failed:", error);
+
         res.status(error.statusCode || 500).json({ message: error.message || "Internal server error" });
+
+
     }
 };
 

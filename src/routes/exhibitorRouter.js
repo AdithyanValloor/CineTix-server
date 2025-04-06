@@ -11,6 +11,7 @@ const router = express.Router()
 
 // Authentication routes
 router.post("/register", registerExhibitor);
+
 router.post("/login", loginExhibitor);
 
 // Exhibitor profile management

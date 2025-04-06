@@ -23,13 +23,19 @@ const bookingSchema = new Schema({
     },
     seats: [{ 
         type: mongoose.Schema.Types.ObjectId, 
-        ref: "Seat", 
+        ref: "ShowSeatStatus", 
         required: true 
     }],
     totalPrice: { 
         type: Number, 
         required: true 
     },
+    bookingStatus: {
+        type: String,
+        enum: ["active", "cancelled", "expired"],
+        default: "active"
+    },
+      
     paymentStatus: { type: String, enum: ["pending", "paid"], default: "pending" },
 }, { timestamps: true });
 
