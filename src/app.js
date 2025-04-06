@@ -10,7 +10,6 @@ import cookieParser from 'cookie-parser'
 import { reviewRouter } from "./routes/reviewsRouter.js";
 import { watchlistRouter } from "./routes/watchlistRouter.js";
 import cors from 'cors'
-import bodyParser from "body-parser";
 import stripeWebhookRoute from "./routes/stripeWebhook.js";
 import { paymentRouter } from "./routes/paymentsRouter.js";
 
