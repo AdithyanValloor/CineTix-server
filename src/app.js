@@ -15,6 +15,8 @@ import { paymentRouter } from "./routes/paymentsRouter.js";
 
 const app = express()
 
+app.use("/api/webhook", stripeWebhookRoute);
+
 app.use(cors({
     origin: [
         "https://cine-tix-client.vercel.app",
@@ -27,12 +29,8 @@ app.use(cors({
 }))
 app.options("*", cors());
 
-app.use("/api/webhook", stripeWebhookRoute);
-
 app.use(cookieParser())
 app.use(express.json())
-
-app.use("/api/payments", paymentRouter)
 
 // User route
 app.use("/api/user", userRouter)
