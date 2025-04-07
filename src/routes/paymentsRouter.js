@@ -6,6 +6,7 @@ dotenv.config();
 
 const router = express.Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const client = process.env.CLIENT_URL
 
 // Create Stripe Checkout Session
 router.post("/create-checkout-session", protect, async (req, res) => {
@@ -40,8 +41,8 @@ router.post("/create-checkout-session", protect, async (req, res) => {
         bookingId,
         userId: userId.toString(),
       },
-      success_url: "http://localhost:5173/payment-success",
-      cancel_url: "http://localhost:5173/payment-failed",
+      success_url: `${client}/payment-success`,
+      cancel_url: `${client}/payment-failed`,
     });
 
     res.json({ id: session.id });
