@@ -1,5 +1,5 @@
 import express from "express";
-import stripeWebhookRoute from "./routes/stripeWebhook.js";
+import { stripeWebhookHandler } from "./routes/stripeWebhook.js";
 import cookieParser from 'cookie-parser'
 import cors from 'cors'
 
@@ -21,7 +21,7 @@ const app = express()
 app.post(
     "/api/webhook",
     express.raw({ type: "application/json" }),
-    stripeWebhookRoute
+    stripeWebhookHandler
 );
   
 
