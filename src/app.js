@@ -1,8 +1,7 @@
 import express from "express";
-import { stripeWebhookHandler } from "./routes/stripeWebhook.js";
+import webhookRoute from './routes/stripeWebhook.js'
 import cookieParser from 'cookie-parser'
 import cors from 'cors'
-
 import { userRouter } from "./routes/userRouter.js";
 import { adminRouter } from "./routes/adminRouter.js";
 import { theaterRouter } from "./routes/theatersRouter.js";
@@ -16,13 +15,11 @@ import { paymentRouter } from "./routes/paymentsRouter.js";
 
 const app = express()
 
-// app.use("/api/webhook", stripeWebhookRoute);
-
-app.post(
+app.use(
     "/api/webhook",
     express.raw({ type: "application/json" }),
-    stripeWebhookHandler
-);
+    webhookRoute
+  );
   
 
 app.use(cors({
