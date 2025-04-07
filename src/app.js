@@ -10,12 +10,17 @@ import cookieParser from 'cookie-parser'
 import { reviewRouter } from "./routes/reviewsRouter.js";
 import { watchlistRouter } from "./routes/watchlistRouter.js";
 import cors from 'cors'
-import stripeWebhookRoute from "./routes/stripeWebhook.js";
+// import stripeWebhookRoute from "./routes/stripeWebhook.js";
 import { paymentRouter } from "./routes/paymentsRouter.js";
+import stripeWebhookHandler from "./routes/stripeWebhook.js";
 
 const app = express()
 
-app.use("/api/webhook", stripeWebhookRoute);
+app.post(
+  "/api/webhook",
+  express.raw({ type: "application/json" }),
+  stripeWebhookHandler
+);
 
 app.use(cors({
     origin: [
