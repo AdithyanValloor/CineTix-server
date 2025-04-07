@@ -41,8 +41,8 @@ router.post("/create-checkout-session", protect, async (req, res) => {
         bookingId,
         userId: userId.toString(),
       },
-      success_url: `${client}/payment-success`,
-      cancel_url: `${client}/payment-failed`,
+      success_url: `https://cine-tix-client.vercel.app/`,
+      cancel_url: `https://cine-tix-client.vercel.app/`,
     });
 
     res.json({ id: session.id });
