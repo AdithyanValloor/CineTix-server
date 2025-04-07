@@ -8,18 +8,20 @@ const router = express.Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const client = process.env.CLIENT_URL
 
+
+
 // Create Stripe Checkout Session
 router.post("/create-checkout-session", protect, async (req, res) => {
   try {
+
+    console.log("CLIENT : ", client);
+
     const { bookingId, seats, totalPrice } = req.body;
 
     const userId = req.user._id
 
     // Safety check for seats array
     const seatList = Array.isArray(seats) ? seats.join(", ") : "No seats selected";
-
-    console.log("USER EMAIL : ", req.user.email);
-    
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
@@ -41,8 +43,10 @@ router.post("/create-checkout-session", protect, async (req, res) => {
         bookingId,
         userId: userId.toString(),
       },
-      success_url: `${client}/payment-success`,
-      cancel_url: `${client}/payment-failed`,
+      // success_url: `${client}/payment-success`,
+      // cancel_url: `${client}/payment-failed`,
+      success_url: `https://cine-tix-client.vercel.app/payment-success`,
+      cancel_url: `https://cine-tix-client.vercel.app/payment-failed`,
     });
 
     res.json({ id: session.id });
