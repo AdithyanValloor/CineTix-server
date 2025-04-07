@@ -3,12 +3,11 @@ import Stripe from "stripe";
 import { Booking } from "../models/bookingsModel.js";
 import { Payment } from "../models/paymentsModel.js";
 import dotenv from 'dotenv';
+
 dotenv.config();
 
 const router = express.Router();
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-
-console.log(" Stripe webhook hit");
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
 
 router.post(
   "/",

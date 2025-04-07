@@ -1,4 +1,8 @@
 import express from "express";
+import stripeWebhookRoute from "./routes/stripeWebhook.js";
+import cookieParser from 'cookie-parser'
+import cors from 'cors'
+
 import { userRouter } from "./routes/userRouter.js";
 import { adminRouter } from "./routes/adminRouter.js";
 import { theaterRouter } from "./routes/theatersRouter.js";
@@ -6,11 +10,8 @@ import { moviesRouter } from "./routes/moviesRouter.js";
 import { bookingRouter } from "./routes/bookingsRouter.js";
 import { showsRouter } from "./routes/showsRouter.js";
 import { exhibitorRouter } from "./routes/exhibitorRouter.js";
-import cookieParser from 'cookie-parser'
 import { reviewRouter } from "./routes/reviewsRouter.js";
 import { watchlistRouter } from "./routes/watchlistRouter.js";
-import cors from 'cors'
-import stripeWebhookRoute from "./routes/stripeWebhook.js";
 import { paymentRouter } from "./routes/paymentsRouter.js";
 
 const app = express()
@@ -32,8 +33,6 @@ app.options("*", cors());
 
 app.use(cookieParser())
 app.use(express.json())
-
-app.use("/api/payments", paymentRouter)
 
 // User route
 app.use("/api/user", userRouter)
