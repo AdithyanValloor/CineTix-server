@@ -16,7 +16,14 @@ import { paymentRouter } from "./routes/paymentsRouter.js";
 
 const app = express()
 
-app.use("/api/webhook", stripeWebhookRoute);
+// app.use("/api/webhook", stripeWebhookRoute);
+
+app.post(
+    "/api/webhook",
+    express.raw({ type: "application/json" }),
+    stripeWebhookRoute
+);
+  
 
 app.use(cors({
     origin: [
