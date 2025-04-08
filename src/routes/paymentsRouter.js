@@ -8,8 +8,6 @@ const router = express.Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const client = process.env.CLIENT_URL
 
-
-
 // Create Stripe Checkout Session
 router.post("/create-checkout-session", protect, async (req, res) => {
   try {
