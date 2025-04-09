@@ -1,6 +1,8 @@
 import express from "express";
 import Stripe from "stripe";
 import { protect } from "../middlewares/auth.js";
+import { Booking } from "../models/bookingsModel.js";
+import { Payment } from "../models/paymentsModel.js";
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -41,8 +43,7 @@ router.post("/create-checkout-session", protect, async (req, res) => {
         bookingId,
         userId: userId.toString(),
       },
-      // success_url: `${client}/payment-success`,
-      // cancel_url: `${client}/payment-failed`,
+  
       success_url: `https://cine-tix-client.vercel.app/payment-success`,
       cancel_url: `https://cine-tix-client.vercel.app/payment-failed`,
     });
@@ -55,3 +56,41 @@ router.post("/create-checkout-session", protect, async (req, res) => {
 });
 
 export { router as paymentRouter };
+
+
+// Webhook Handler 
+
+router.post("/webhook-handler", async (req, res) => {
+  const apiKey = req.headers.authorization?.split(" ")[1];
+
+  if (apiKey !== process.env.INTERNAL_API_KEY) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const { bookingId, userId, session } = req.body;
+
+  try {
+    await Booking.findByIdAndUpdate(bookingId, {
+      paymentStatus: "paid",
+    });
+
+    await Payment.create({
+      booking: bookingId,
+      user: userId,
+      provider: "Stripe",
+      status: "success",
+      amount: session.amount_total / 100,
+      currency: session.currency,
+      transactionId: session.id,
+      paymentIntentId: session.payment_intent,
+      paymentMethod: session.payment_method_types[0],
+      metadata: session,
+    });
+
+    console.log(`✅ Booking ${bookingId} marked as paid via microservice`);
+    res.json({ success: true });
+  } catch (err) {
+    console.error("❌ Payment handling failed:", err.message);
+    res.status(500).json({ error: "Failed to update booking/payment" });
+  }
+});

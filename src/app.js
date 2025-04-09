@@ -1,5 +1,4 @@
 import express from "express";
-import webhookRoute from './routes/stripeWebhook.js'
 import cookieParser from 'cookie-parser'
 import cors from 'cors'
 import { userRouter } from "./routes/userRouter.js";
@@ -14,13 +13,6 @@ import { watchlistRouter } from "./routes/watchlistRouter.js";
 import { paymentRouter } from "./routes/paymentsRouter.js";
 
 const app = express()
-
-app.use(
-    "/api/webhook",
-    express.raw({ type: "application/json" }),
-    webhookRoute
-  );
-  
 
 app.use(cors({
     origin: [
