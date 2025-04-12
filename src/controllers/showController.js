@@ -59,19 +59,32 @@ export const getAvailableSeats = async (req, res) => {
 }
 
 // Get Shows 
+// Get Shows  
 export const getShows = async (req, res) => {
     try {
-        const { movie, theater } = req.query
-        let filter = {}
-        if (movie) filter.movie = movie
-        if (theater) filter.theater = theater
-
-        const shows = await Show.find(filter).populate("movie theater")
-        res.json({ data: shows })
+      const { movie, theater, type } = req.query;
+      let filter = {};
+  
+      // Apply movie or theater filters
+      if (movie) filter.movie = movie;
+      if (theater) filter.theater = theater;
+  
+      // Filter based on type: "upcoming" or "past"
+      const today = new Date();
+      if (type === "upcoming") {
+        filter.date = { $gte: today };
+      } else if (type === "past") {
+        filter.date = { $lt: today };
+      }
+  
+      const shows = await Show.find(filter).populate("movie theater").sort({ date: -1 });
+  
+      res.json({ data: shows });
     } catch (error) {
-        res.status(500).json({ message: error.message })
+      res.status(500).json({ message: error.message });
     }
 };
+  
 
 // Get active movies 
 

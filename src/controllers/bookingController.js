@@ -48,6 +48,7 @@ export const bookSeats = async (req, res) => {
             show: showId,
             theater: show.theater,
             movie: show.movie,
+            exhibitor: show.exhibitor,
             seats: seatStatusIds,
             totalPrice,
             paymentStatus: "pending" // Future: support "paid", "cancelled"

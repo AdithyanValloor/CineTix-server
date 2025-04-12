@@ -291,11 +291,16 @@ export const deleteAccount = async (req, res) => {
 // LOGOUT
 export const logout = async (req, res) => {
     try {
-        res.clearCookie("token");
-    
-        res.json({message: "User logout success"})
+        res.clearCookie("token", {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "None"
+        });
+
+        res.status(200).json({ message: "User logout successful" });
     } catch (error) {
-        res.status(error.statusCode || 500).json({message: error.message || "Internal server error"})
+        res.status(error.statusCode || 500).json({ message: error.message || "Internal server error" });
     }
-}
+};
+
 

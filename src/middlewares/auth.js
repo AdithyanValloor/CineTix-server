@@ -45,6 +45,10 @@ export const authorizeAdmin = (req, res, next) => {
 
 // Exhibitor auth
 export const authorizeExhibitor = (req, res, next) => {
+
+    console.log("Incoming token:", req.cookies?.token);
+    console.log("Decoded user:", req.user);
+
     
     console.log("User in authorizeExhibitor:", req.user);
 

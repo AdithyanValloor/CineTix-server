@@ -36,7 +36,17 @@ const bookingSchema = new Schema({
         default: "active"
     },
       
-    paymentStatus: { type: String, enum: ["pending", "paid"], default: "pending" },
+    paymentStatus: { 
+        type: String, 
+        enum: ["pending", "paid"], 
+        default: "pending" 
+    },
+    exhibitor: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true,
+    },
+
 }, { timestamps: true });
 
 export const Booking = model("Booking", bookingSchema);

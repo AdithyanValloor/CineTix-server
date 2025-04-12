@@ -1,7 +1,10 @@
 import { User } from "../models/userModel.js";
 import { generateToken } from "../utils/token.js";
+import {Theater} from '../models/theatersModel.js';
+import {Show} from '../models/showsModel.js';
+import {Booking} from '../models/bookingsModel.js';
 
-
+// Register
 export const registerExhibitor = async (req, res) => {
     try {
 
@@ -36,6 +39,7 @@ export const registerExhibitor = async (req, res) => {
     }
 }
 
+// Login
 export const loginExhibitor = async (req, res) => {
     try {
 
@@ -72,6 +76,7 @@ export const loginExhibitor = async (req, res) => {
     }
 }
 
+// Get profile
 export const getExhibitorProfile = async (req, res) => {
     try {
         // Verify user
@@ -89,6 +94,174 @@ export const getExhibitorProfile = async (req, res) => {
     }
 }
 
+// Get Dashboard
+export const getDashboardStats = async (req, res) => {
+    try {
+      const exhibitorId = req.user._id;
+  
+      const totalTheaters = await Theater.countDocuments({ exhibitor: exhibitorId });
+  
+      const now = new Date();
+
+      const shows = await Show.find({ exhibitor: exhibitorId });
+
+      const upcomingShows = shows.filter(show => {
+      const showDateTime = new Date(`${show.date.toISOString().split('T')[0]}T${show.time}`);
+      return showDateTime >= now;
+      }).length;
+
+  
+      const startOfToday = new Date();
+      startOfToday.setHours(0, 0, 0, 0);
+      const endOfToday = new Date();
+      endOfToday.setHours(23, 59, 59, 999);
+  
+      const todaysBookings = await Booking.countDocuments({
+        exhibitor: exhibitorId,
+        createdAt: { $gte: startOfToday, $lte: endOfToday },
+      });
+  
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  
+      const weeklyRevenueAgg = await Booking.aggregate([
+        {
+          $match: {
+            exhibitor: exhibitorId,
+            createdAt: { $gte: sevenDaysAgo },
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: '$totalPrice' },
+          },
+        },
+      ]);
+      const weeklyRevenue = weeklyRevenueAgg[0]?.total || 0;
+  
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+  
+      const monthlyRevenueAgg = await Booking.aggregate([
+        {
+          $match: {
+            exhibitor: exhibitorId,
+            createdAt: { $gte: startOfMonth },
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: '$totalPrice' },
+          },
+        },
+      ]);
+      const monthlyRevenue = monthlyRevenueAgg[0]?.total || 0;
+  
+      const totalRevenueAgg = await Booking.aggregate([
+        {
+          $match: { exhibitor: exhibitorId },
+        },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: '$totalPrice' },
+          },
+        },
+      ]);
+      const totalRevenue = totalRevenueAgg[0]?.total || 0;
+
+      const dailyRevenueAgg = await Booking.aggregate([
+        {
+          $match: {
+            exhibitor: exhibitorId,
+            createdAt: { $gte: sevenDaysAgo, $lte: now },
+          },
+        },
+        {
+          $group: {
+            _id: {
+              $dateToString: { format: '%Y-%m-%d', date: '$createdAt' },
+            },
+            total: { $sum: '$totalPrice' },
+          },
+        },
+        { $sort: { _id: 1 } },
+      ]);
+      
+      const dailyRevenueMap = {};
+      dailyRevenueAgg.forEach(entry => {
+        dailyRevenueMap[entry._id] = entry.total;
+      });
+      
+      const labels = [];
+      const values = [];
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        const key = date.toISOString().split('T')[0]; // 'YYYY-MM-DD'
+        const day = date.toLocaleDateString('en-US', { weekday: 'short' }); // 'Mon'
+        labels.push(day);
+        values.push(dailyRevenueMap[key] || 0);
+      }
+      
+  
+      res.status(200).json({
+        totalTheaters,
+        upcomingShows,
+        todaysBookings,
+        weeklyRevenue,
+        monthlyRevenue,
+        totalRevenue,
+        revenueChart: {
+            labels,
+            values,
+        },
+      });
+    } catch (error) {
+      console.error('Error fetching dashboard stats:', error);
+      res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+
+// Get all bookings
+export const getExhibitorBookings = async (req, res) => {
+    try {
+      const exhibitorId = req.user._id;
+  
+      // Step 1: Get shows by this exhibitor
+      const exhibitorShows = await Show.find({ exhibitor: exhibitorId }).select("_id");
+      const showIds = exhibitorShows.map(show => show._id);
+  
+      // Step 2: Find bookings for these shows
+      const bookings = await Booking.find({ show: { $in: showIds } })
+        .populate('user', 'firstName lastName') 
+        .populate({
+          path: 'show',
+          populate: [
+            { path: 'movie', select: 'title' },
+            { path: 'theater', select: 'name' }
+          ]
+        })
+        .populate({
+            path: 'seats',
+            select: 'seat price'  
+        });
+  
+      res.status(200).json(bookings);
+    } catch (error) {
+      console.error('Error fetching exhibitor bookings:', error);
+      res.status(500).json({ message: 'Server Error' });
+    }
+};
+  
+  
+
+
+// Update profile
 export const updateExhibitorProfile = async (req, res) => {
     try {
 
@@ -126,3 +299,21 @@ export const updateExhibitorProfile = async (req, res) => {
     }
 }
 
+// LOGOUT
+export const logout = async (req, res) => {
+    
+    console.log("LOGOUT HIt");
+    
+
+    try {
+        res.clearCookie("token", {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "None"
+        });
+
+        res.status(200).json({ message: "User logout successful" });
+    } catch (error) {
+        res.status(error.statusCode || 500).json({ message: error.message || "Internal server error" });
+    }
+};

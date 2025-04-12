@@ -14,6 +14,6 @@ router.patch("/edit-theater/:id", protect, authorizeExhibitor, editTheater)
 router.delete("/delete-theater/:id", protect, authorizeExhibitor, deleteTheater)
 
 // List theaters
-router.get("/list-theaters", protect, authorizeExhibitorOrAdmin, listTheaters)
+router.get("/list-theaters", protect, authorizeExhibitor, listTheaters)
 
 export {router as theaterRouter}
