@@ -1,17 +1,21 @@
 import { Movie } from "../models/moviesModel.js";
 
-// Get all movies
+// Get all movies 
 export const getAllMovies = async (req, res) => {
     try {
-        const movies = await Movie.find();
-        if (!movies.length) return res.status(404).json({ message: "No movies available" });
+        const { query } = req.query; 
+        const movies = await Movie.find({
+            title: { $regex: query, $options: "i" } 
+        });
+
+        if (!movies.length) return res.status(404).json({ message: "No movies found" });
 
         res.json({ data: movies, message: "Movies fetched successfully" });
-
     } catch (error) {
         res.status(500).json({ message: error.message || "Internal server error" });
     }
 };
+
 
 // Get movie by id
 export const getMovieById = async (req, res) => {
@@ -42,26 +46,40 @@ export const listMoviesByTheater = async (req, res) => {
     }
 };
 
+// Add movie
 export const addMovie = async (req, res) => {
     try {
-        console.log('Raw movieData:', req.body.movieData);
-        const movieData = JSON.parse(req.body.movieData || '{}'); 
-        console.log('Parsed movieData:', movieData);
-        console.log('Uploaded Files:', req.files);
-
-        const { title, description, duration, language, genre, year, director, rating, certification, castAndCrew } = movieData;
-
-        if (!title || !description || !duration || !language || !genre) {
-            return res.status(400).json({ message: "All fields are required" });
+        const {
+            title,
+            description,
+            duration,
+            language,
+            genre,
+            year,
+            releaseDate,
+            director,
+            certification,
+            rating
+        } = req.body;
+        
+        // Cast & crew comes as indexed fields, so parse it manually
+        const castAndCrew = [];
+        for (let i = 0; req.body[`castAndCrew[${i}][name]`]; i++) {
+        castAndCrew.push({
+            name: req.body[`castAndCrew[${i}][name]`],
+            role: req.body[`castAndCrew[${i}][role]`],
+            character: req.body[`castAndCrew[${i}][character]`],
+            image: req.files?.castAndCrew?.find(file => file.originalname === req.body[`castAndCrew[${i}][name]`])?.path || ''
+        });
         }
+          
 
-        const posters = req.files?.posters?.map(file => file.path) || [];
-        const banners = req.files?.banners?.map(file => file.path) || [];
+        const posters = req.files?.posters?.map(file => file.secure_url) || [];
+        const banners = req.files?.banners?.map(file => file.secure_url) || [];
 
-        // Process castAndCrew images
         const updatedCastAndCrew = castAndCrew.map(member => ({
             ...member,
-            image: req.files?.castAndCrew?.find(file => file.originalname === member.name)?.path || ""
+            image: req.files?.castAndCrew?.find(file => file.originalname === member.name)?.secure_url || ""
         }));
 
         const newMovie = new Movie({
@@ -71,6 +89,7 @@ export const addMovie = async (req, res) => {
             language,
             genre,
             year,
+            releaseDate,
             director,
             certification,
             castAndCrew: updatedCastAndCrew,
@@ -85,11 +104,52 @@ export const addMovie = async (req, res) => {
         res.status(201).json({ data: newMovie, message: "Movie added successfully" });
 
     } catch (error) {
+        console.error('Error adding movie:', error);  // Log the error for debugging
         res.status(500).json({ message: error.message || "Internal server error" });
     }
 };
 
-// Update movie details (including posters & banners)
+
+
+// Add movie
+// export const addMovie = async (req, res) => {
+//   try {
+//     // Parsing movieData from form
+//     const movieData = JSON.parse(req.body.movieData || '{}');
+//     console.log('Parsed movieData:', movieData);
+    
+//     // Access uploaded files
+//     const posters = req.files?.posters || [];
+//     const banners = req.files?.banners || [];
+
+//     const { title, description, director, genre, language, year, rating, duration, certification } = movieData;
+
+//     // Create movie entry
+//     const newMovie = new Movie({
+//       title,
+//       description,
+//       director,
+//       genre,
+//       language,
+//       year,
+//       rating,
+//       certification,
+//       posters,
+//       banners,
+//       castAndCrew: movieData.castAndCrew,
+//     });
+
+//     // Save movie to DB
+//     await newMovie.save();
+//     res.status(201).json({ data: newMovie, message: 'Movie added successfully' });
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ message: error.message || 'Internal server error' });
+//   }
+// };
+
+
+// Update movie details 
 export const updateMovie = async (req, res) => {
     try {
         const { movieId } = req.params;

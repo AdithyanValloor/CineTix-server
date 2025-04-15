@@ -29,11 +29,16 @@ const UserSchema = new mongoose.Schema(
       required: true,
     },
     company: {
-      type: String
+      type: String,
     },
     dateOfBirth: {
       type: Date,
     },
+    savedCity: {
+      type: String,
+      trim: true,
+      default: null,
+    },    
     mobile: {
       type: String,
     },
@@ -87,6 +92,19 @@ const UserSchema = new mongoose.Schema(
       type: Date, 
       default: null 
     },
+    isBanned: {
+      type: Boolean,
+      default: false, 
+    },
+    banType: {
+      type: String,
+      enum: ['temporary', 'permanent', null],
+      default: null
+    },
+    banExpiry: { 
+      type: Date, 
+      default: null,  
+    },
   },
   { timestamps: true }
 );
@@ -99,9 +117,66 @@ UserSchema.pre("save", async function (next) {
   next();
 });
 
+UserSchema.pre('findOne', function() {
+  this.populate('theatersOwned');
+});
+
 // Compare password
 UserSchema.methods.comparePassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
+};
+
+// Check if the user is temporarily banned and whether the ban has expired
+UserSchema.methods.isTemporarilyBanned = function () {
+  if (!this.isBanned) return false;
+  // If the ban has expired, return false
+  if (this.banExpiry && new Date() > this.banExpiry) {
+    this.isBanned = false;
+    this.banType = 'temporary'
+    this.banExpiry = null;
+    return false;
+  }
+  return true;
+};
+
+// Helper method to apply permanent ban
+UserSchema.methods.permanentlyBan = async function () {
+  console.log("HIT PER");
+  
+  this.isBanned = true;
+  this.isActive = false;
+  this.banType = 'permanent';
+  this.banExpiry = null;
+  return await this.save(); 
+};
+
+
+// Helper method to apply temporary ban
+UserSchema.methods.temporarilyBan = async function (durationInDays) {
+  console.log("HIT TEMP");
+  
+  this.isBanned = true;
+  this.isActive = false;
+  this.banType = 'temporary';
+  this.banExpiry = new Date();
+  this.banExpiry.setDate(this.banExpiry.getDate() + durationInDays); 
+  return await this.save(); 
+};
+
+
+// Helper method to unban a user
+UserSchema.methods.unban = async function () {
+  this.isBanned = false;
+  this.isActive = true;
+  this.banExpiry = null;
+  this.banType = null;
+  return await this.save();
+};
+
+// Helper method to delete a user
+UserSchema.methods.deleteUser = async function () {
+  this.deleteAt = new Date();
+  return await this.save();
 };
 
 const User = mongoose.model("User", UserSchema);

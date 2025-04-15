@@ -3,6 +3,7 @@ import { generateToken } from "../utils/token.js";
 import {Theater} from '../models/theatersModel.js';
 import {Show} from '../models/showsModel.js';
 import {Booking} from '../models/bookingsModel.js';
+import moment from "moment";
 
 // Register
 export const registerExhibitor = async (req, res) => {
@@ -83,7 +84,14 @@ export const getExhibitorProfile = async (req, res) => {
         if(!req.user || !req.user.id) return res.status(400).json({message:"Unauthorised access"})
 
         // Check user 
-        const exhibitorData = await User.findById(req.user.id)
+        const exhibitorData = await User.findById(req.user.id).populate({
+          path: 'theatersOwned',
+          select: 'name location rows columns',
+          populate: {
+              path: 'exhibitor',
+              select: 'firstName lastName'
+          }
+      });
         
         if(!exhibitorData) return res.status(400).json({message: "User not found"})
 
@@ -96,134 +104,238 @@ export const getExhibitorProfile = async (req, res) => {
 
 // Get Dashboard
 export const getDashboardStats = async (req, res) => {
-    try {
-      const exhibitorId = req.user._id;
-  
-      const totalTheaters = await Theater.countDocuments({ exhibitor: exhibitorId });
-  
-      const now = new Date();
+  try {
+    const exhibitorId = req.user._id;
+    const now = new Date();
 
-      const shows = await Show.find({ exhibitor: exhibitorId });
+    const totalTheaters = await Theater.countDocuments({ exhibitor: exhibitorId });
 
-      const upcomingShows = shows.filter(show => {
+    const shows = await Show.find({ exhibitor: exhibitorId });
+
+    const upcomingShows = shows.filter(show => {
       const showDateTime = new Date(`${show.date.toISOString().split('T')[0]}T${show.time}`);
       return showDateTime >= now;
-      }).length;
+    }).length;
 
-  
-      const startOfToday = new Date();
-      startOfToday.setHours(0, 0, 0, 0);
-      const endOfToday = new Date();
-      endOfToday.setHours(23, 59, 59, 999);
-  
-      const todaysBookings = await Booking.countDocuments({
-        exhibitor: exhibitorId,
-        createdAt: { $gte: startOfToday, $lte: endOfToday },
-      });
-  
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-  
-      const weeklyRevenueAgg = await Booking.aggregate([
-        {
-          $match: {
-            exhibitor: exhibitorId,
-            createdAt: { $gte: sevenDaysAgo },
-          },
-        },
-        {
-          $group: {
-            _id: null,
-            total: { $sum: '$totalPrice' },
-          },
-        },
-      ]);
-      const weeklyRevenue = weeklyRevenueAgg[0]?.total || 0;
-  
-      const startOfMonth = new Date();
-      startOfMonth.setDate(1);
-      startOfMonth.setHours(0, 0, 0, 0);
-  
-      const monthlyRevenueAgg = await Booking.aggregate([
-        {
-          $match: {
-            exhibitor: exhibitorId,
-            createdAt: { $gte: startOfMonth },
-          },
-        },
-        {
-          $group: {
-            _id: null,
-            total: { $sum: '$totalPrice' },
-          },
-        },
-      ]);
-      const monthlyRevenue = monthlyRevenueAgg[0]?.total || 0;
-  
-      const totalRevenueAgg = await Booking.aggregate([
-        {
-          $match: { exhibitor: exhibitorId },
-        },
-        {
-          $group: {
-            _id: null,
-            total: { $sum: '$totalPrice' },
-          },
-        },
-      ]);
-      const totalRevenue = totalRevenueAgg[0]?.total || 0;
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const endOfToday = new Date();
+    endOfToday.setHours(23, 59, 59, 999);
 
-      const dailyRevenueAgg = await Booking.aggregate([
-        {
-          $match: {
-            exhibitor: exhibitorId,
-            createdAt: { $gte: sevenDaysAgo, $lte: now },
+    // Filtered today's bookings with 'paid' status
+    const todaysBookings = await Booking.countDocuments({
+      exhibitor: exhibitorId,
+      createdAt: { $gte: startOfToday, $lte: endOfToday },
+      paymentStatus: 'paid',
+    });
+
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    // Aggregation for Weekly Revenue with 'paid' status
+    const weeklyRevenueAgg = await Booking.aggregate([
+      {
+        $match: {
+          exhibitor: exhibitorId,
+          createdAt: { $gte: sevenDaysAgo },
+          paymentStatus: 'paid',
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: '$totalPrice' },
+        },
+      },
+    ]);
+    const weeklyRevenue = weeklyRevenueAgg[0]?.total || 0;
+
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    // Aggregation for Monthly Revenue with 'paid' status
+    const monthlyRevenueAgg = await Booking.aggregate([
+      {
+        $match: {
+          exhibitor: exhibitorId,
+          createdAt: { $gte: startOfMonth },
+          paymentStatus: 'paid', 
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: '$totalPrice' },
+        },
+      },
+    ]);
+    const monthlyRevenue = monthlyRevenueAgg[0]?.total || 0;
+
+    // Aggregation for Total Revenue with 'paid' status
+    const totalRevenueAgg = await Booking.aggregate([
+      {
+        $match: {
+          exhibitor: exhibitorId,
+          paymentStatus: 'paid', 
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: '$totalPrice' },
+        },
+      },
+    ]);
+    const totalRevenue = totalRevenueAgg[0]?.total || 0;
+
+    // Aggregation for Daily Revenue with 'paid' status
+    const dailyRevenueAgg = await Booking.aggregate([
+      {
+        $match: {
+          exhibitor: exhibitorId,
+          createdAt: { $gte: sevenDaysAgo, $lte: now },
+          paymentStatus: 'paid', 
+        },
+      },
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: '%Y-%m-%d', date: '$createdAt' },
           },
+          total: { $sum: '$totalPrice' },
         },
-        {
-          $group: {
-            _id: {
-              $dateToString: { format: '%Y-%m-%d', date: '$createdAt' },
-            },
-            total: { $sum: '$totalPrice' },
-          },
-        },
-        { $sort: { _id: 1 } },
-      ]);
-      
-      const dailyRevenueMap = {};
-      dailyRevenueAgg.forEach(entry => {
-        dailyRevenueMap[entry._id] = entry.total;
-      });
-      
-      const labels = [];
-      const values = [];
-      for (let i = 6; i >= 0; i--) {
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-        const key = date.toISOString().split('T')[0]; // 'YYYY-MM-DD'
-        const day = date.toLocaleDateString('en-US', { weekday: 'short' }); // 'Mon'
-        labels.push(day);
-        values.push(dailyRevenueMap[key] || 0);
-      }
-      
-  
-      res.status(200).json({
-        totalTheaters,
-        upcomingShows,
-        todaysBookings,
-        weeklyRevenue,
-        monthlyRevenue,
-        totalRevenue,
-        revenueChart: {
-            labels,
-            values,
-        },
-      });
-    } catch (error) {
-      console.error('Error fetching dashboard stats:', error);
-      res.status(500).json({ message: 'Server Error' });
+      },
+      { $sort: { _id: 1 } },
+    ]);
+
+    const dailyRevenueMap = {};
+    dailyRevenueAgg.forEach(entry => {
+      dailyRevenueMap[entry._id] = entry.total;
+    });
+
+    const labels = [];
+    const values = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const key = date.toISOString().split('T')[0]; // 'YYYY-MM-DD'
+      const day = date.toLocaleDateString('en-US', { weekday: 'short' }); // 'Mon'
+      labels.push(day);
+      values.push(dailyRevenueMap[key] || 0);
     }
+
+    // Return the updated stats
+    res.status(200).json({
+      totalTheaters,
+      upcomingShows,
+      todaysBookings,
+      weeklyRevenue,
+      monthlyRevenue,
+      totalRevenue,
+      revenueChart: {
+        labels,
+        values,
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching dashboard stats:', error);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+// Get Theater analytics
+export const getTheaterAnalytics = async (req, res) => {
+  try {
+    const exhibitorId = req.user._id;
+    const startOfMonth = moment().startOf("month").toDate();
+    const endOfMonth = moment().endOf("month").toDate();
+
+    const theaters = await Theater.find({ exhibitor: exhibitorId });
+    const theaterIds = theaters.map((t) => t._id);
+
+    const shows = await Show.find({ theater: { $in: theaterIds } });
+    const showIds = shows.map((s) => s._id);
+
+    const bookings = await Booking.find({
+      show: { $in: showIds },
+      paymentStatus: "paid",
+    }).populate("show");
+
+    const totalBookings = bookings.length;
+
+    // Calculate seats booked & available for occupancy rate
+    let totalSeatsBooked = 0;
+    let totalSeatsAvailable = 0;
+
+    bookings.forEach((b) => {
+      totalSeatsBooked += b.seats.length;
+    });
+
+    shows.forEach((s) => {
+      const rows = s?.seatLayout?.rows || 0;
+      const cols = s?.seatLayout?.columns || 0;
+      totalSeatsAvailable += rows * cols;
+    });
+
+    const occupancyRate = totalSeatsAvailable
+      ? Math.round((totalSeatsBooked / totalSeatsAvailable) * 100)
+      : 0;
+
+    // Monthly revenue (from bookings in current month)
+    const monthlyRevenue = bookings
+      .filter((b) => {
+        const created = new Date(b.createdAt);
+        return created >= startOfMonth && created <= endOfMonth;
+      })
+      .reduce((sum, b) => sum + b.totalPrice, 0);
+
+    // Shows this month
+    const showsThisMonth = shows.filter((s) => {
+      const showDate = new Date(s.date);
+      return showDate >= startOfMonth && showDate <= endOfMonth;
+    }).length;
+
+    return res.status(200).json({
+      totalBookings,
+      occupancyRate,
+      monthlyRevenue,
+      showsThisMonth,
+    });
+  } catch (err) {
+    console.error("Theater analytics error:", err);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
+
+// Get Revenue Reports
+export const getRevenueReports = async (req, res) => {
+  try {
+    const exhibitorId = req.user._id;
+
+    const bookings = await Booking.find({ exhibitor: exhibitorId, paymentStatus: 'paid' })
+      .populate('show') // get show time, date, movie, theater
+      .populate({
+        path: 'show',
+        populate: ['theater', 'movie']
+      });
+
+    const report = bookings.map((booking, index) => ({
+      id: index + 1,
+      date: booking.createdAt.toISOString().split('T')[0],
+      theater: booking.show.theater?.name || 'N/A',
+      movie: booking.show.movie?.title || 'N/A',
+      time: booking.show.time,
+      tickets: booking.seats.length,
+      total: booking.totalPrice
+    }));
+
+    res.status(200).json(report);
+  } catch (error) {
+    console.error('Revenue report error:', error);
+    res.status(500).json({ message: 'Server Error' });
+  }
 };
 
 

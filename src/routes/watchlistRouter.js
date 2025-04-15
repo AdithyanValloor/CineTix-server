@@ -7,10 +7,10 @@ const router = express.Router()
 // Get all watchlist
 router.get("/", protect, getWatchlist)
 
-// Add to watchlist 
-router.post("/add", protect, addToWatchlist)
+// Add to watchlist
+router.post("/add/:movieId", protect, addToWatchlist);
 
-// Remove from watchlist 
-router.delete("/delete", protect, deleteFromWatchlist)
+// Remove from watchlist
+router.delete("/delete/:movieId", protect, deleteFromWatchlist);
 
 export {router as watchlistRouter}

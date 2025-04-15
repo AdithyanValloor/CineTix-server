@@ -7,7 +7,7 @@ import {
     getAllMovies,
     getMovieById
 } from "../controllers/movieController.js";
-import { protect, authorizeExhibitor } from "../middlewares/auth.js";
+import { protect, authorizeExhibitor, authorizeAdmin } from "../middlewares/auth.js";
 import upload from "../middlewares/multer.js"; 
 
 const router = express.Router();
@@ -25,7 +25,7 @@ router.get("/theater/:theaterId", listMoviesByTheater);
 router.post(
     "/add", 
     protect, 
-    authorizeExhibitor, 
+    authorizeAdmin, 
     upload.fields([
         { name: "posters", maxCount: 5 }, 
         { name: "banners", maxCount: 3 },
@@ -38,7 +38,7 @@ router.post(
 router.put(
     "/update/:movieId", 
     protect, 
-    authorizeExhibitor, 
+    authorizeAdmin, 
     upload.fields([
         { name: "posters", maxCount: 5 }, 
         { name: "banners", maxCount: 3 },
@@ -48,6 +48,6 @@ router.put(
 );
 
 // Delete a movie
-router.delete("/delete/:movieId", protect, authorizeExhibitor, deleteMovie);
+router.delete("/delete/:movieId", protect, authorizeAdmin, deleteMovie);
 
 export { router as moviesRouter };

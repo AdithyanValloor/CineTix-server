@@ -7,6 +7,7 @@ import {
     deleteReview,
     averageRating,
     updateReview,
+    getReviewsForTheater,
 
 
  } from '../controllers/reviewController.js'
@@ -21,6 +22,9 @@ router.get("/all", protect, getAllReviews)
 
 // Get reviews with id
 router.get("/:id", protect, getReview)
+
+// Get theater review
+router.get('/get-review/:theaterId', protect , getReviewsForTheater)
 
 // Edit reviews
 router.patch("/update-review/:id", protect, updateReview)

@@ -1,5 +1,5 @@
 import express from "express";
-import { createShow, getShows, updateShow, getShowById, movieByShowId, getShowsForMovie, getAvailableSeats, getActiveMovies, deleteShow } from "../controllers/showController.js";
+import { createShow, getShows, updateShow, getShowById, movieByShowId, getShowsForMovie, getAvailableSeats, getActiveMovies, deleteShow, getMoviesByTheater, getMoviesByLocation } from "../controllers/showController.js";
 import { protect, authorizeExhibitor } from "../middlewares/auth.js";
 
 const router = express.Router();
@@ -12,6 +12,9 @@ router.get("/get-shows", getShows);
 
 // Get all active movies
 router.get("/active-movies", getActiveMovies)
+
+// Get all active movies by theater
+router.get("/movies-by-theater/:theaterId", getMoviesByTheater)
 
 // Get shows grouped by theaters for a specific movie
 router.get("/movie/:movieId", getShowsForMovie);
@@ -30,5 +33,9 @@ router.put("/update-show/:id", protect, authorizeExhibitor, updateShow);
 
 // Delete a show
 router.delete("/delete-show/:id", protect, authorizeExhibitor, deleteShow);
+
+// Get movies with location
+router.get('/movies-by-location', getMoviesByLocation);
+
 
 export {router as showsRouter}

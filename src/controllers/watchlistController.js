@@ -8,6 +8,10 @@ export const getWatchlist = async (req, res) => {
         const userId = req.user.id
 
         const watchlist = await Watchlist.find({user: userId})
+        .populate({
+            path: 'movie',
+            select: 'title posters _id' // Add more fields if needed
+        });
 
         if(!watchlist || !watchlist.length) return res.status(404).json({message: "No watchlist found"})
 

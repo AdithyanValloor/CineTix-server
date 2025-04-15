@@ -7,41 +7,55 @@ import { generateShowSeatStatuses } from "../utils/generateSeatStatus.js"
 // Create Show
 export const createShow = async (req, res) => {
     try {
-        const { movie, theater, date, time } = req.body;
-
-        if (!movie || !theater || !date || !time) {
-            return res.status(400).json({ message: "All fields are required" });
-        }
-
-        const movieData = await Movie.findById(movie);
-        if (!movieData) return res.status(404).json({ message: "Movie not found" });
-
-        const theaterData = await Theater.findById(theater);
-        if (!theaterData) return res.status(404).json({ message: "Theater not found" });
-
-        // Create the show first
-        const show = await Show.create({ 
-            movie, 
-            theater, 
-            date, 
-            time, 
-            exhibitor: req.user._id
-        });
-
-        // Generate seats statuses for this show
-        await generateShowSeatStatuses(show._id, theaterData._id); 
-
-        // Link movie to theater (optional for listing)
-        await Movie.findByIdAndUpdate(movie, { 
-            $addToSet: { theaters: theater } 
-        });
-
-        res.status(201).json({ data: show, message: "Show created and seats generated successfully" });
-
+      const { movie, theater, date, time } = req.body;
+  
+      if (!movie || !theater || !date || !time) {
+        return res.status(400).json({ message: "All fields are required" });
+      }
+  
+      const movieData = await Movie.findById(movie);
+      if (!movieData) return res.status(404).json({ message: "Movie not found" });
+  
+      const theaterData = await Theater.findById(theater);
+      if (!theaterData) return res.status(404).json({ message: "Theater not found" });
+  
+     
+      if (theaterData.exhibitor.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ message: "You do not own this theater" });
+      }
+  
+      const existingShow = await Show.findOne({ movie, theater, date, time });
+      if (existingShow) {
+        return res.status(409).json({ message: "Show already exists for the same movie, theater, date, and time" });
+      }
+  
+     
+      const show = await Show.create({
+        movie,
+        theater,
+        date,
+        time,
+        exhibitor: req.user._id,
+      });
+  
+      await generateShowSeatStatuses(show._id, theater);
+  
+      // 🔗 Optionally link movie to this theater
+      await Movie.findByIdAndUpdate(movie, {
+        $addToSet: { theaters: theater },
+      });
+  
+      res.status(201).json({
+        data: show,
+        message: "Show created and seats generated successfully",
+      });
+  
     } catch (error) {
-        res.status(500).json({ message: error.message || "Internal Server Error" });
+      console.error("Error creating show:", error);
+      res.status(500).json({ message: error.message || "Internal Server Error" });
     }
 };
+  
 
 // Get available seats
 export const getAvailableSeats = async (req, res) => {
@@ -58,7 +72,6 @@ export const getAvailableSeats = async (req, res) => {
     }
 }
 
-// Get Shows 
 // Get Shows  
 export const getShows = async (req, res) => {
     try {
@@ -85,25 +98,90 @@ export const getShows = async (req, res) => {
     }
 };
   
+// Get currently running movies by theater
+export const getMoviesByTheater = async (req, res) => {
+    try {
+        const { theaterId } = req.params;
+
+        // Step 1: Find unique movie IDs from shows in the given theater
+        const movieIds = await Show.distinct("movie", {
+            theater: theaterId,
+        });
+
+        // Step 2: Fetch movie documents
+        const movies = await Movie.find({ _id: { $in: movieIds } });
+
+        res.status(200).json({
+            success: true,
+            data: movies,
+        });
+    } catch (error) {
+        console.error("Error fetching movies by theater:", error);
+        res.status(500).json({ success: false, message: "Failed to fetch movies for theater" });
+    }
+};
+
+
 
 // Get active movies 
-
 export const getActiveMovies = async (req, res) => {
     try {
-        // Get distinct movie IDs from shows
-        const movieIdsWithShows = await Show.distinct('movie');
-    
-        // Now fetch the actual movie data
-        const movies = await Movie.find({ _id: { $in: movieIdsWithShows } });
-    
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Strip time to match full day
+        
+        // Find distinct movie IDs from future shows only
+        const movieIdsWithUpcomingShows = await Show.distinct('movie', {
+            date: { $gte: today },
+            date: { $ne: null } 
+        });
+
+        // Fetch the actual movie documents
+        const movies = await Movie.find({ _id: { $in: movieIdsWithUpcomingShows } });
+
         res.status(200).json({ success: true, data: movies });
     } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+        console.error("Error fetching active movies:", err);
+        res.status(500).json({ success: false, error: err.message });
     }
-}
+};
 
-// Get shows for movies filtered with date
+// Get movies by location
+export const getMoviesByLocation = async (req, res) => {
+  try {
+    const { location } = req.query;
 
+    if (!location) {
+      return res.status(400).json({ message: "Location is required" });
+    }
+
+    // Step 1: Find theaters in the given location
+    const theatersInLocation = await Theater.find({ location }).select('_id');
+
+    const theaterIds = theatersInLocation.map(t => t._id);
+
+    if (theaterIds.length === 0) {
+      return res.status(200).json({ success: true, data: [] }); // No theaters, so no movies
+    }
+
+    // Step 2: Find shows in those theaters (optional: filter upcoming)
+    const today = new Date();
+    const showMovieIds = await Show.distinct('movie', {
+      theater: { $in: theaterIds },
+      date: { $gte: today } // Only upcoming shows
+    });
+
+    // Step 3: Find the movie documents
+    const movies = await Movie.find({ _id: { $in: showMovieIds } });
+
+    res.status(200).json({ success: true, data: movies });
+  } catch (error) {
+    console.error("Error fetching movies by location:", error);
+    res.status(500).json({ message: "Failed to fetch movies by location" });
+  }
+};
+
+  
+// Get shows for a movie grouped by theater and filtered by date
 export const getShowsForMovie = async (req, res) => {
     const { movieId } = req.params;
     const { date } = req.query;
@@ -116,17 +194,18 @@ export const getShowsForMovie = async (req, res) => {
         const end = new Date(date);
         end.setDate(end.getDate() + 1);
   
-        query.date = { $gte: start, $lt: end }; // Matches the full day
+        query.date = { $gte: start, $lt: end };
       }
   
-      const shows = await Show.find(query)
-        .populate("theater")
-        .lean();
+      const shows = await Show.find(query).populate("theater").lean();
   
       const grouped = {};
   
       for (const show of shows) {
+        if (!show.theater) continue;
+  
         const tId = show.theater._id.toString();
+  
         if (!grouped[tId]) {
           grouped[tId] = {
             theater: show.theater,
@@ -144,84 +223,8 @@ export const getShowsForMovie = async (req, res) => {
       console.error("Error fetching shows for movie:", err);
       res.status(500).json({ message: "Failed to fetch shows for movie" });
     }
-  };
+};
   
-
-// export const getShowsForMovie = async (req, res) => {
-//     const { movieId } = req.params;
-//     const { date } = req.query;
-  
-//     try {
-//       const query = { movie: movieId };
-  
-//       if (date) {
-//         const start = new Date(date);
-//         const end = new Date(date);
-//         end.setDate(end.getDate() + 1);
-  
-//         // Assuming your Show schema has a `date` field of type Date
-//         query.date = { $gte: start, $lt: end };
-//       }
-  
-//       const shows = await Show.find(query)
-//         .populate("theater")
-//         .lean();
-  
-//       const grouped = {};
-  
-//       for (const show of shows) {
-//         const tId = show.theater._id.toString();
-//         if (!grouped[tId]) {
-//           grouped[tId] = {
-//             theater: show.theater,
-//             shows: [],
-//           };
-//         }
-//         grouped[tId].shows.push(show);
-//       }
-  
-//       res.status(200).json({
-//         success: true,
-//         data: Object.values(grouped),
-//       });
-//     } catch (err) {
-//       console.error("Error fetching shows for movie:", err);
-//       res.status(500).json({ message: "Failed to fetch shows for movie" });
-//     }
-// };
-  
-
-// export const getShowsForMovie = async (req, res) => {
-//     const { movieId } = req.params;
-  
-//     try {
-//       const shows = await Show.find({ movie: movieId })
-//         .populate("theater") // Assuming show has a `theater` ObjectId field
-//         .lean();
-  
-//       // Group by theater
-//       const grouped = {};
-  
-//       for (const show of shows) {
-//         const tId = show.theater._id.toString();
-//         if (!grouped[tId]) {
-//           grouped[tId] = {
-//             theater: show.theater,
-//             shows: [],
-//           };
-//         }
-//         grouped[tId].shows.push(show);
-//       }
-  
-//       res.status(200).json({
-//         success: true,
-//         data: Object.values(grouped), 
-//       });
-//     } catch (err) {
-//       console.error("Error fetching shows for movie:", err);
-//       res.status(500).json({ message: "Failed to fetch shows for movie" });
-//     }
-// };
 
 // Get movie details by show id
 export const movieByShowId = async (req, res) => {
@@ -253,50 +256,57 @@ export const getShowById = async (req, res) => {
 // Update Show
 export const updateShow = async (req, res) => {
     try {
-        const { movie, date, time } = req.body;
-        const show = await Show.findById(req.params.id);
-
-        if (!show) return res.status(404).json({ message: "Show not found" });
-
-        if (date) show.date = date;
-        if (time) show.time = time;
-
-        if (movie && movie !== show.movie.toString()) {
-            // Update movie reference and movie-theater link (optional)
-            await Movie.findByIdAndUpdate(show.movie, { $pull: { theaters: show.theater } });
-            await Movie.findByIdAndUpdate(movie, { $addToSet: { theaters: show.theater } });
-            show.movie = movie;
-        }
-
-        await show.save();
-        res.json({ data: show, message: "Show updated successfully" });
+      const show = await Show.findById(req.params.id);
+      if (!show) return res.status(404).json({ message: "Show not found" });
+  
+      if (show.exhibitor.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ message: "You are not allowed to update this show" });
+      }
+  
+      const { movie, date, time } = req.body;
+  
+      if (date) show.date = date;
+      if (time) show.time = time;
+  
+      if (movie && movie !== show.movie.toString()) {
+        await Movie.findByIdAndUpdate(show.movie, { $pull: { theaters: show.theater } });
+        await Movie.findByIdAndUpdate(movie, { $addToSet: { theaters: show.theater } });
+        show.movie = movie;
+      }
+  
+      await show.save();
+      res.json({ data: show, message: "Show updated successfully" });
     } catch (error) {
-        res.status(500).json({ message: error.message || "Internal Server Error" });
+      res.status(500).json({ message: error.message || "Internal Server Error" });
     }
 };
-
+  
 
 // Delete Show
 export const deleteShow = async (req, res) => {
     try {
-        const show = await Show.findById(req.params.id)
-        if (!show) return res.status(404).json({ message: "Show not found" })
-
-        const { movie, theater } = show;    
-
-        await Show.deleteOne({ _id: req.params.id });
-        await ShowSeatStatus.deleteMany({ show: show._id });
-
-        const remainingShows = await Show.findOne({ movie, theater });
-
-        if (!remainingShows) {
-            await Movie.findByIdAndUpdate(movie, {
-                $pull: { theaters: theater }
-            });
-        }
-
-        res.json({ message: "Show deleted successfully" })
+      const show = await Show.findById(req.params.id);
+      if (!show) return res.status(404).json({ message: "Show not found" });
+  
+      if (show.exhibitor.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ message: "You are not allowed to delete this show" });
+      }
+  
+      const { movie, theater } = show;
+  
+      await Show.deleteOne({ _id: req.params.id });
+      await ShowSeatStatus.deleteMany({ show: show._id });
+  
+      const remainingShows = await Show.findOne({ movie, theater });
+      if (!remainingShows) {
+        await Movie.findByIdAndUpdate(movie, {
+          $pull: { theaters: theater },
+        });
+      }
+  
+      res.json({ message: "Show deleted successfully" });
     } catch (error) {
-        res.status(500).json({ message: error.message })
+      res.status(500).json({ message: error.message });
     }
-};
+  };
+  

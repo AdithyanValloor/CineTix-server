@@ -11,6 +11,10 @@ import { exhibitorRouter } from "./routes/exhibitorRouter.js";
 import { reviewRouter } from "./routes/reviewsRouter.js";
 import { watchlistRouter } from "./routes/watchlistRouter.js";
 import { paymentRouter } from "./routes/paymentsRouter.js";
+import { notificationRouter } from "./routes/notificationsRouter.js";
+import { userNotificationRouter } from "./routes/userNotificationRouter.js";
+import { supportRouter } from "./routes/supportRequestRouter.js";
+import { locationRouter } from "./routes/location.js";
 
 const app = express()
 
@@ -57,7 +61,19 @@ app.use("/api/reviews", reviewRouter)
 // Payments route
 app.use("/api/payments", paymentRouter)
 
+// Notification route
+app.use('/api/notifications', notificationRouter);
+
 // Watchlist
 app.use("/api/watchlist", watchlistRouter)
+
+// User notifications
+app.use("/api/user-notification", userNotificationRouter)
+
+// User support
+app.use("/api/support", supportRouter);
+
+// Locations
+app.use("/api/locations", locationRouter)
 
 export default app

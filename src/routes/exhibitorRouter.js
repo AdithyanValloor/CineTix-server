@@ -7,7 +7,9 @@ import {
     updateExhibitorProfile,
     logout, 
     getDashboardStats,
-    getExhibitorBookings 
+    getExhibitorBookings, 
+    getRevenueReports,
+    getTheaterAnalytics
 } from "../controllers/exhibitorController.js";
 
 const router = express.Router()
@@ -21,6 +23,13 @@ router.get("/dashboard", protect, authorizeExhibitor, getDashboardStats )
 
 // All bookings
 router.get("/bookings", protect, authorizeExhibitor, getExhibitorBookings )
+
+// Get Revenue Report
+router.get("/revenue-reports", protect, authorizeExhibitor, getRevenueReports)
+
+// Get Analytics
+router.get("/analytics", protect, authorizeExhibitor, getTheaterAnalytics);
+
 
 
 // Exhibitor profile management

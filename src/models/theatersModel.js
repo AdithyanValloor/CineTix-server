@@ -40,6 +40,18 @@ const theaterSchema = new Schema({
           ref: "Review", 
         },
     ], 
+    isActive: {
+        type: Boolean,
+        default: true,
+    },
+    deactivatedAt: { 
+        type: Date, 
+        default: null 
+    },
+    deleteAt: { 
+        type: Date, 
+        default: null 
+    },
 }, { timestamps: true });
 
 export const Theater = model("Theater", theaterSchema);

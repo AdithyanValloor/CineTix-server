@@ -32,16 +32,19 @@ const movieSchema = new Schema({
         min: 1, 
         max: 10, 
     },
+    releaseDate: {
+        type: Date
+    },
     certification: {
         type: String,
         enum: ["U", "U/A","U-12", "U-16", "A", "PG", "PG-13", "R", "NC-17"],
-        default: "U" // Ensure there's always a value if none is provided
+        default: "U" 
     },    
     castAndCrew: [
         {
             name: { type: String, required: true },
-            role: { type: String, required: true }, // e.g., Actor, Director, Producer, Writer, etc.
-            character: { type: String } // For actors, if applicable
+            role: { type: String, required: true }, 
+            character: { type: String } 
         }
     ],
     exhibitors: [{ 

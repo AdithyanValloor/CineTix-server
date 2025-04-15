@@ -1,6 +1,10 @@
 import { Theater } from "../models/theatersModel.js";
+import { User } from "../models/userModel.js";
 
 export const addTheater = async (req, res) => {
+
+    console.log("REQ>USER : ", req.user);
+
     try {
         const { name, location, rows, columns, sections } = req.body;
 
@@ -24,6 +28,14 @@ export const addTheater = async (req, res) => {
         });
 
         await theater.save();
+
+        console.log("REQ>USER : ", req.user);
+        
+
+        await User.findByIdAndUpdate(req.user.id, {
+            $push: { theatersOwned: theater._id }
+        });
+
         res.status(201).json({ data: theater, message: "Theater added successfully with sections" });
 
     } catch (error) {
@@ -31,6 +43,35 @@ export const addTheater = async (req, res) => {
     }
 };
 
+// Get all theaters
+export const getAllTheatersQuery = async (req, res) => {
+    try {
+        const { query } = req.query; // Search query from the frontend
+        const theaters = await Theater.find({
+            name: { $regex: query, $options: "i" } // Case-insensitive search
+        }).populate("exhibitor", "firstName lastName email profilePicture");
+
+        if (!theaters.length) return res.status(404).json({ message: "No theaters found" });
+
+        res.json({ data: theaters, message: "Theaters fetched successfully" });
+    } catch (error) {
+        res.status(500).json({ message: error.message || "Internal server error" });
+    }
+};
+
+
+// List all theaters with query
+export const getAllTheaters = async (req, res) => {
+    try {
+        const theaters = await Theater.find()
+            .populate("exhibitor", "firstName lastName email profilePicture") 
+            .sort({ createdAt: -1 }); 
+
+        res.status(200).json({ data: theaters, message: "All theaters with exhibitor details fetched successfully" });
+    } catch (error) {
+        res.status(500).json({ message: error.message || "Internal server error" });
+    }
+};
 
 // Edit theater
 export const editTheater = async (req, res) => {
@@ -74,6 +115,43 @@ export const editTheater = async (req, res) => {
     }
 };
 
+// Deactivate theater (soft disable)
+export const deactivateTheater = async (req, res) => {
+    
+    console.log("DEACTIVATE HIT");
+    
+    try {
+      const theater = await Theater.findById(req.params.id);
+  
+      if (!theater) return res.status(404).json({ message: "Theater not found" });
+  
+      theater.isActive = false;
+      theater.deactivatedAt = new Date();
+      await theater.save();
+  
+      res.json({ message: "Theater deactivated successfully", data: theater });
+    } catch (error) {
+      res.status(500).json({ message: error.message || "Internal server error" });
+    }
+};
+  
+  // Reactivate theater
+export const reactivateTheater = async (req, res) => {
+    try {
+      const theater = await Theater.findById(req.params.id);
+  
+      if (!theater) return res.status(404).json({ message: "Theater not found" });
+  
+      theater.isActive = true;
+      theater.deactivatedAt = null;
+      await theater.save();
+  
+      res.json({ message: "Theater reactivated successfully", data: theater });
+    } catch (error) {
+      res.status(500).json({ message: error.message || "Internal server error" });
+    }
+};
+
 // Delete theater
 export const deleteTheater = async (req, res) => {
     try {
@@ -89,6 +167,39 @@ export const deleteTheater = async (req, res) => {
 
     } catch (error) {
         res.status(500).json({ message: error.message || "Internal server error" });
+    }
+};
+
+// Delete theater
+export const deleteTheaterAdmin = async (req, res) => {
+    try {
+        const theater = await Theater.findById(req.params.id);
+
+        if (!theater) return res.status(404).json({ message: "Theater not found" });
+
+        await theater.deleteOne();
+        res.json({ message: "Theater deleted successfully" });
+
+    } catch (error) {
+        res.status(500).json({ message: error.message || "Internal server error" });
+    }
+};
+
+// Get theater by id
+export const getTheaterById = async (req, res) => {
+    try {
+      const theater = await Theater.findById(req.params.id)
+        .populate('exhibitor', 'firstName lastName email profilePicture')
+        .populate('sections');
+  
+      if (!theater) {
+        return res.status(404).json({ message: 'Theater not found' });
+      }
+  
+      res.status(200).json({ success: true, theater });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Server Error' });
     }
 };
 

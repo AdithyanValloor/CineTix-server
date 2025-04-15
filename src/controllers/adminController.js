@@ -281,44 +281,105 @@ export const adminDashboard = async (req, res) => {
     }
 };
 
-// Deactivate user
+
+// Ban user
+export const banUser = async (req, res) => {
+  console.log("HITTING BAN WITH USER ID : ", req.params.id);
+
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const { banType, durationInDays } = req.body; 
+
+    let updatedUser;
+    if (banType === "temporary") {
+      // Perform temporary ban logic
+      const newBanExpiryDate = new Date(Date.now() + durationInDays * 24 * 60 * 60 * 1000); 
+      updatedUser = await user.temporarilyBan(durationInDays); 
+      updatedUser.banExpiry = newBanExpiryDate;
+    } else {
+      updatedUser = await user.permanentlyBan();
+    }
+
+    // Ensure that the response includes the correct updated user data
+    res.json({
+      updatedUser: { 
+        _id: updatedUser._id, 
+        isBanned: true, 
+        banExpiry: updatedUser.banExpiry || null
+       
+      },
+      message: banType === "temporary" 
+        ? `User has been temporarily banned for ${durationInDays} days` 
+        : `User has been permanently banned`
+    });
+
+  } catch (error) {
+    res.status(error.statusCode || 500).json({ message: error.message || "Internal server error" });
+  }
+};
+
+  
+  // Unban User
+export const unbanUser = async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id);
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        await user.unban();
+        return res.json({ message: "User has been unbanned successfully" });
+
+    } catch (error) {
+        res.status(error.statusCode || 500).json({ message: error.message || "Internal server error" });
+    }
+};
+  
+// Deactivate User
 export const deactivateUser = async (req, res) => {
     try {
-        const user = await User.findById(req.params.id)
-        if(!user) return res.status(404).json({message: "User not found"})
-        
-        // If already deactivated, do nothing
-        if (user.isActive === false) return res.status(400).json({ message: "User is already deactivated" })
+        const user = await User.findById(req.params.id);
+        if (!user) return res.status(404).json({ message: "User not found" });
 
-        const deleteAt = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000)
+        if (!user.isActive) return res.status(400).json({ message: "User is already deactivated" });
+
+        const deleteAt = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000); // 6 months later
+
         await User.findByIdAndUpdate(user._id, {
-            $set: {
-                deactivatedAt: new Date(),
-                deleteAt,
-                isActive: false
-            }
+        $set: {
+            deactivatedAt: new Date(),
+            deleteAt,
+            isActive: false,
+            isBanned: false, 
+        },
         });
 
-        res.json({message: "User account deactivated successfully"})
-
+        res.json({ message: "User account deactivated successfully" });
     } catch (error) {
-        res.status(error.statusCode || 500).json({message: error.message || "Internal server error"})
+        res.status(error.statusCode || 500).json({ message: error.message || "Internal server error" });
     }
-}
-
-// Delete user 
+};
+  
+// Delete User
 export const deleteUser = async (req, res) => {
+
+  console.log('Delete Hit');
+  
     try {
-        const user = await User.findById(req.params.id)
-        if(!user) return res.status(404).json({message: "User not found"})
+        const user = await User.findById(req.params.id);
         
-        await user.deleteOne()
-        res.json({message: "User account deleted successfully"})
+        if( user ) console.log("USER FOUND");
+        
+
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        await user.deleteUser(); 
+        res.json({ message: "User account deleted successfully" });
 
     } catch (error) {
-        res.status(error.statusCode || 500).json({message: error.message || "Internal server error"})
+        res.status(error.statusCode || 500).json({ message: error.message || "Internal server error" });
     }
-}
+};
 
 // Logout
 export const logout = async (req, res) => {
