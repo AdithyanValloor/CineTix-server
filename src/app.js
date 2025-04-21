@@ -15,6 +15,7 @@ import { notificationRouter } from "./routes/notificationsRouter.js";
 import { userNotificationRouter } from "./routes/userNotificationRouter.js";
 import { supportRouter } from "./routes/supportRequestRouter.js";
 import { locationRouter } from "./routes/location.js";
+import { carouselImageRouter } from "./routes/carouselImageRouter.js";
 
 const app = express()
 
@@ -75,5 +76,8 @@ app.use("/api/support", supportRouter);
 
 // Locations
 app.use("/api/locations", locationRouter)
+
+// Carousel
+app.use("/api/carousel", carouselImageRouter)
 
 export default app

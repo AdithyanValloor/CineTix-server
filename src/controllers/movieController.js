@@ -1,21 +1,30 @@
 import { Movie } from "../models/moviesModel.js";
 
-// Get all movies 
-export const getAllMovies = async (req, res) => {
+// Get all movies by query
+export const getAllMoviesByQuery = async (req, res) => {
     try {
-        const { query } = req.query; 
-        const movies = await Movie.find({
-            title: { $regex: query, $options: "i" } 
-        });
-
-        if (!movies.length) return res.status(404).json({ message: "No movies found" });
-
-        res.json({ data: movies, message: "Movies fetched successfully" });
+      const { query } = req.query;
+  
+      if (!query || !query.trim()) {
+        return res.status(400).json({ message: "Search query is required" });
+      }
+  
+      const movies = await Movie.find({
+        title: { $regex: query.trim(), $options: "i" },
+      });
+  
+      return res.status(200).json({
+        data: movies,
+        count: movies.length,
+        message: movies.length
+          ? "Movies fetched successfully"
+          : "No movies found",
+      });
     } catch (error) {
-        res.status(500).json({ message: error.message || "Internal server error" });
+      console.error("Error fetching movies:", error);
+      res.status(500).json({ message: "Internal server error" });
     }
 };
-
 
 // Get movie by id
 export const getMovieById = async (req, res) => {
@@ -36,6 +45,20 @@ export const getMovieById = async (req, res) => {
 export const listMoviesByTheater = async (req, res) => {
     try {
         const movies = await Movie.find({ theaters: req.params.theaterId });
+
+        if (!movies.length) return res.json({ message: "No movies available" });
+
+        res.json({ data: movies, message: "Movies fetched successfully" });
+
+    } catch (error) {
+        res.status(500).json({ message: error.message || "Internal server error" });
+    }
+};
+
+// List all movies in a theater
+export const getAllMovies = async (req, res) => {
+    try {
+        const movies = await Movie.find();
 
         if (!movies.length) return res.json({ message: "No movies available" });
 
@@ -108,46 +131,6 @@ export const addMovie = async (req, res) => {
         res.status(500).json({ message: error.message || "Internal server error" });
     }
 };
-
-
-
-// Add movie
-// export const addMovie = async (req, res) => {
-//   try {
-//     // Parsing movieData from form
-//     const movieData = JSON.parse(req.body.movieData || '{}');
-//     console.log('Parsed movieData:', movieData);
-    
-//     // Access uploaded files
-//     const posters = req.files?.posters || [];
-//     const banners = req.files?.banners || [];
-
-//     const { title, description, director, genre, language, year, rating, duration, certification } = movieData;
-
-//     // Create movie entry
-//     const newMovie = new Movie({
-//       title,
-//       description,
-//       director,
-//       genre,
-//       language,
-//       year,
-//       rating,
-//       certification,
-//       posters,
-//       banners,
-//       castAndCrew: movieData.castAndCrew,
-//     });
-
-//     // Save movie to DB
-//     await newMovie.save();
-//     res.status(201).json({ data: newMovie, message: 'Movie added successfully' });
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({ message: error.message || 'Internal server error' });
-//   }
-// };
-
 
 // Update movie details 
 export const updateMovie = async (req, res) => {

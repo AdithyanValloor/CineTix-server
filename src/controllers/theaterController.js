@@ -43,21 +43,31 @@ export const addTheater = async (req, res) => {
     }
 };
 
-// Get all theaters
+// Get all theaters by query
 export const getAllTheatersQuery = async (req, res) => {
     try {
-        const { query } = req.query; // Search query from the frontend
-        const theaters = await Theater.find({
-            name: { $regex: query, $options: "i" } // Case-insensitive search
-        }).populate("exhibitor", "firstName lastName email profilePicture");
-
-        if (!theaters.length) return res.status(404).json({ message: "No theaters found" });
-
-        res.json({ data: theaters, message: "Theaters fetched successfully" });
+      const { query } = req.query;
+  
+      if (!query || !query.trim()) {
+        return res.status(400).json({ message: "Search query is required" });
+      }
+  
+      const theaters = await Theater.find({
+        name: { $regex: query.trim(), $options: "i" },
+      }).populate("exhibitor", "firstName lastName email profilePicture");
+  
+      return res.status(200).json({
+        data: theaters,
+        count: theaters.length,
+        message: theaters.length
+          ? "Theaters fetched successfully"
+          : "No theaters found",
+      });
     } catch (error) {
-        res.status(500).json({ message: error.message || "Internal server error" });
+      console.error("Error fetching theaters:", error);
+      res.status(500).json({ message: "Internal server error" });
     }
-};
+  };
 
 
 // List all theaters with query

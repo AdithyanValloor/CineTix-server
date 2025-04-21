@@ -396,3 +396,49 @@ export const logout = async (req, res) => {
         res.status(error.statusCode || 500).json({ message: error.message || "Internal server error" });
     }
 };
+
+// Get all exhibitors waiting for approval
+export const getPendingExhibitors = async (req, res) => {
+  try {
+    const pending = await User.find({ role: "exhibitor", approvalStatus: "pending" });
+    res.json({ exhibitors: pending });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch pending exhibitors" });
+  }
+};
+
+// Approve an exhibitor
+export const approveExhibitor = async (req, res) => {
+  try {
+    const exhibitor = await User.findById(req.params.id);
+    if (!exhibitor || exhibitor.role !== "exhibitor") {
+      return res.status(404).json({ message: "Exhibitor not found" });
+    }
+
+    exhibitor.isApproved = true;
+    exhibitor.approvalStatus = "approved";
+    await exhibitor.save();
+
+    res.json({ message: "Exhibitor approved successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to approve exhibitor" });
+  }
+};
+
+// Reject an exhibitor
+export const rejectExhibitor = async (req, res) => {
+  try {
+    const exhibitor = await User.findById(req.params.id);
+    if (!exhibitor || exhibitor.role !== "exhibitor") {
+      return res.status(404).json({ message: "Exhibitor not found" });
+    }
+
+    exhibitor.isApproved = false;
+    exhibitor.approvalStatus = "rejected";
+    await exhibitor.save();
+
+    res.json({ message: "Exhibitor rejected successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to reject exhibitor" });
+  }
+};

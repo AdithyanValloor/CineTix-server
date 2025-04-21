@@ -1,6 +1,6 @@
 import express from "express";
 import { protect, authorizeAdmin } from "../middlewares/auth.js";
-import { deactivateUser, deleteUser, banUser, unbanUser, getAllUsers, login, signup, adminDashboard, logout } from "../controllers/adminController.js";
+import { deactivateUser, deleteUser, banUser, unbanUser, getAllUsers, login, signup, adminDashboard, logout, getPendingExhibitors, approveExhibitor, rejectExhibitor } from "../controllers/adminController.js";
 
 const router = express.Router();
 
@@ -30,6 +30,15 @@ router.put("/unban-user/:id", protect, authorizeAdmin, unbanUser);
 
 // Delete user
 router.delete("/delete-user/:id", protect, authorizeAdmin, deleteUser);
+
+// Get Pending Exhibitor aproval
+router.get("/pending-exhibitors", protect, authorizeAdmin, getPendingExhibitors);
+
+// Aprove exhibitor
+router.post("/approve-exhibitor/:id", protect, authorizeAdmin, approveExhibitor);
+
+// Reject exhibitor
+router.post("/reject-exhibitor/:id", protect, authorizeAdmin, rejectExhibitor);
 
 // Logout
 router.post("/logout", logout);

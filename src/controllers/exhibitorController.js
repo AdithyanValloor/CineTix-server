@@ -7,75 +7,84 @@ import moment from "moment";
 
 // Register
 export const registerExhibitor = async (req, res) => {
-    try {
+  try {
+      const { firstName, lastName, email, password, mobile, company } = req.body;
 
-        // Get exhibitor data
-        const {firstName, lastName, email, password, mobile, company} = req.body
-        
-        if(!firstName|| !lastName || !email || !password || !mobile || !company) return res.status(400).json({message: "All fields are required"})
+      if (!firstName || !lastName || !email || !password || !mobile || !company)
+          return res.status(400).json({ message: "All fields are required" });
 
-        // Check if exhibitor already registered
-        const exists = await User.findOne({ email })
-        if(exists) return res.status(400).json({message: "Exhibitor already exists"})
+      const exists = await User.findOne({ email });
+      if (exists) return res.status(400).json({ message: "Exhibitor already exists" });
 
-        // Create exhibitor
-        const exhibitor = new User({firstName, lastName, email, password, mobile, company, role: "exhibitor"})
+      // Create exhibitor with default approval state
+      const exhibitor = new User({
+          firstName,
+          lastName,
+          email,
+          password,
+          mobile,
+          company,
+          role: "exhibitor",
+          isApproved: false,               
+          approvalStatus: "pending"       
+      });
 
-        await exhibitor.save()
+      await exhibitor.save();
 
-        // Create token 
-        const token = generateToken(exhibitor._id, "exhibitor")
+      res.status(201).json({ message: "Exhibitor registration successful. Awaiting admin approval." });
 
-        // Set cookie and send data
-        res.cookie("token", token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "None",
-            expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) 
-        });
-        res.json({data: exhibitor, message: "Exhibitor registration successful"})
-
-    } catch (error) {
-        res.status(error.statusCode || 500).json({message: error.message || "Internal server error"})
-    }
+  } catch (error) {
+      res.status(error.statusCode || 500).json({ message: error.message || "Internal server error" });
+  }
 }
 
 // Login
 export const loginExhibitor = async (req, res) => {
-    try {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password)
+      return res.status(400).json({ message: "All fields are required" });
 
-        // Get login data
-        const {email, password} = req.body
-        if(!email || !password) return res.status(400).json({message: "All fields are required"})
+    const exhibitor = await User.findOne({ email });
+    if (!exhibitor)
+      return res.status(400).json({ message: "Invalid email or password" });
 
-        const exhibitor = await User.findOne({email})
-        if(!exhibitor) return res.status(400).json({message: "Invalid email or password"})
+    const isValid = await exhibitor.comparePassword(password);
+    if (!isValid)
+      return res.status(400).json({ message: "Invalid email or password" });
 
-        // Compare password 
-        const isValid = await exhibitor.comparePassword(password)
-        if(!isValid) return res.status(400).json({message: "Invalid email or password"})
-
-        // Create token 
-        const token = generateToken(exhibitor._id, "exhibitor")
-
-        // Set cookie and send data
-        res.cookie("token", token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "None",
-            expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) 
+    // Check if role is exhibitor
+    if (exhibitor.role === "exhibitor") {
+      if (exhibitor.approvalStatus === "pending") {
+        return res.status(403).json({
+          message: "Your account is pending admin approval. Please wait for confirmation.",
         });
+      }
 
-        console.log(exhibitor);
-        
-
-        res.json({data: exhibitor, message: "Exhibitor login successful"})
-
-
-    } catch (error) {
-        res.status(error.statusCode || 500).json({message: error.message || "Internal server error"})
+      if (exhibitor.approvalStatus === "rejected") {
+        return res.status(403).json({
+          message: "Your registration has been rejected by the admin.",
+        });
+      }
     }
-}
+
+    const token = generateToken(exhibitor._id, "exhibitor");
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "None",
+      expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    });
+
+    res.json({ data: exhibitor, message: "Exhibitor login successful" });
+
+  } catch (error) {
+    res
+      .status(error.statusCode || 500)
+      .json({ message: error.message || "Internal server error" });
+  }
+};
 
 // Get profile
 export const getExhibitorProfile = async (req, res) => {

@@ -98,52 +98,55 @@ export const getShows = async (req, res) => {
     }
 };
   
-// Get currently running movies by theater
+// Get currently running or upcoming movies by theater
 export const getMoviesByTheater = async (req, res) => {
-    try {
-        const { theaterId } = req.params;
+  try {
+      const { theaterId } = req.params;
 
-        // Step 1: Find unique movie IDs from shows in the given theater
-        const movieIds = await Show.distinct("movie", {
-            theater: theaterId,
-        });
+      // Set today's date at 00:00:00 to compare with show dates
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
 
-        // Step 2: Fetch movie documents
-        const movies = await Movie.find({ _id: { $in: movieIds } });
+      // Step 1: Find unique movie IDs for upcoming or current shows in the given theater
+      const movieIds = await Show.distinct("movie", {
+          theater: theaterId,
+          date: { $gte: today }, // Only future or today's shows
+      });
 
-        res.status(200).json({
-            success: true,
-            data: movies,
-        });
-    } catch (error) {
-        console.error("Error fetching movies by theater:", error);
-        res.status(500).json({ success: false, message: "Failed to fetch movies for theater" });
-    }
+      // Step 2: Fetch the corresponding movie documents
+      const movies = await Movie.find({ _id: { $in: movieIds } });
+
+      res.status(200).json({
+          success: true,
+          data: movies,
+      });
+  } catch (error) {
+      console.error("Error fetching movies by theater:", error);
+      res.status(500).json({ success: false, message: "Failed to fetch movies for theater" });
+  }
 };
 
 
-
-// Get active movies 
 export const getActiveMovies = async (req, res) => {
-    try {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0); // Strip time to match full day
-        
-        // Find distinct movie IDs from future shows only
-        const movieIdsWithUpcomingShows = await Show.distinct('movie', {
-            date: { $gte: today },
-            date: { $ne: null } 
-        });
+  try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
 
-        // Fetch the actual movie documents
-        const movies = await Movie.find({ _id: { $in: movieIdsWithUpcomingShows } });
+      // Find distinct movie IDs from future shows only
+      const movieIdsWithUpcomingShows = await Show.distinct('movie', {
+          date: { $gte: today }
+      });
 
-        res.status(200).json({ success: true, data: movies });
-    } catch (err) {
-        console.error("Error fetching active movies:", err);
-        res.status(500).json({ success: false, error: err.message });
-    }
+      // Fetch the actual movie documents
+      const movies = await Movie.find({ _id: { $in: movieIdsWithUpcomingShows } });
+
+      res.status(200).json({ success: true, data: movies });
+  } catch (err) {
+      console.error("Error fetching active movies:", err);
+      res.status(500).json({ success: false, error: err.message });
+  }
 };
+
 
 // Get movies by location
 export const getMoviesByLocation = async (req, res) => {

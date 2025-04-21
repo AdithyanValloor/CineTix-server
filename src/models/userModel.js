@@ -68,6 +68,15 @@ const UserSchema = new mongoose.Schema(
       enum: ["user", "exhibitor", "admin"],
       default: "user",  
     },
+    isApproved: {
+      type: Boolean,
+      default: false,
+    },
+    approvalStatus: {
+      type: String,
+      enum: ["pending", "approved", "rejected"],
+      default: "pending",
+    },
     bookings: [
       {
         type: mongoose.Schema.Types.ObjectId,

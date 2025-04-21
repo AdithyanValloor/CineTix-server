@@ -4,8 +4,9 @@ import {
     addMovie, 
     updateMovie, 
     deleteMovie, 
-    getAllMovies,
-    getMovieById
+    getAllMoviesByQuery,
+    getMovieById,
+    getAllMovies
 } from "../controllers/movieController.js";
 import { protect, authorizeExhibitor, authorizeAdmin } from "../middlewares/auth.js";
 import upload from "../middlewares/multer.js"; 
@@ -13,7 +14,10 @@ import upload from "../middlewares/multer.js";
 const router = express.Router();
 
 // List all movies
-router.get("/", getAllMovies);
+router.get("/", getAllMoviesByQuery);
+
+// List all movies
+router.get("/all-movies", getAllMovies);
 
 // Get movie by ID
 router.get("/:movieId", getMovieById);
