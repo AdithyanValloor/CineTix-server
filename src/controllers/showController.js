@@ -97,6 +97,26 @@ export const getShows = async (req, res) => {
       res.status(500).json({ message: error.message });
     }
 };
+
+// Get exhibitor shows
+export const getExhibitorShows = async (req, res) => {
+  try {
+    const exhibitorId = req.user._id; // assuming you're using auth middleware
+    // Step 1: Find all theaters owned by this exhibitor
+    const theaters = await Theater.find({ exhibitor: exhibitorId }).select('_id');
+
+    const theaterIds = theaters.map(theater => theater._id);
+
+    // Step 2: Find all shows for those theaters
+    const shows = await Show.find({ theater: { $in: theaterIds } })
+      .populate("movie theater")
+      .sort({ date: -1 });
+
+    res.json({ data: shows });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
   
 // Get currently running or upcoming movies by theater
 export const getMoviesByTheater = async (req, res) => {
